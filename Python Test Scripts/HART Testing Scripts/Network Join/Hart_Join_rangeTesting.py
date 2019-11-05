@@ -281,6 +281,7 @@ global startTime
 startTime = datetime.now()
 DeviceCount = 1                                  #Number of devices on network... 1 for single unit join test
 RangeTesting = False
+
 def main():
     gw_name = 'brianGW'
     username = 'root'
@@ -299,10 +300,12 @@ def main():
     startTime = datetime.now()
     time.sleep(3)
 
-    if DeviceCount == 1:
-        sendCommand('rm /var/apache/data/hartserver.txt', chan, done)
-        sendCommand('cat>/var/apache/data/hartserver.txt', chan, done)
-        sendCommand(stopTail, chan, done)
+                                                                          #Removes current hartserver log and creates a
+                                                                          #new empty log. This is done to avoid getting
+                                                                          #old data
+    sendCommand('rm /var/apache/data/hartserver.txt', chan, done)
+    sendCommand('cat>/var/apache/data/hartserver.txt', chan, done)
+    sendCommand(stopTail, chan, done)
 
     nwconsoleLogin(chan, done)
 
@@ -320,7 +323,9 @@ def main():
     thread.start()
 
 
-    while done[0] == 'no' or thread.is_alive():
+    while done[0] == 'no' or thread.is_alive():                         #Loop will continue until both the main thread
+                                                                        #and the the hartserver thread have concluded
+                                                                        #gathering data
         done = list(done)
         if done[1] == 'running':
             done = results(chan,ssh,done, outFile)
@@ -343,11 +348,15 @@ def main():
             print(done)
             publish = datetime.now() - startTime
             sendCommand(stopTail, chan, done)
-            nwconsoleLogin(chan,done)
-            wait30()
-            done = list(done)
-            done[1] = 'running'
-            getStats(chan, ssh, done, outFile)
+                                                                 #UNTESTED CODE for range testing switch option
+            if RangeTesting:
+
+                nwconsoleLogin(chan, done)
+                wait30()
+                done = list(done)
+                done[1] = 'running'
+                getStats(chan, ssh, done, outFile)
+
             sendCommand(exitConsole, chan, done)
             sendCommand(quitSSH, chan, done)
             time.sleep(1)
@@ -362,8 +371,8 @@ def main():
             
     print("\n")
     Macfinder(chan,done)
-    PublishDict = HartServerQue.get()
-    for device in DevList:
+    PublishDict = HartServerQue.get()                           #retrieves data from hartserver thread
+    for device in DevList:                                      #parses data from hartserver thread
         for mac in PublishDict.keys():
             if mac == device.mac:
                 device.addPublish(PublishDict[mac])
