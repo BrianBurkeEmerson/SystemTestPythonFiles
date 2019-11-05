@@ -5,8 +5,6 @@ import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
 from collections import Counter
-from collections import OrderedDict
-import matplotlib.ticker as plticker
 
 
 ###### Login to gateway SSH######
@@ -86,9 +84,9 @@ def parse(resp, done):
                     # print(deviceDict)
                     
             except IndexError:
-                    pass
+                pass
             except ValueError:
-                    pass
+                pass
                 
             if "LOG File exceeded max size" in line:
                 print('log full')
@@ -122,9 +120,9 @@ def dictJoin(macAddr, jTime):
         if key == macAddr:
             print(key, macAddr)
             deviceDict[key]['count'] += 1
-#    print(macAddr)
     print(deviceDict[macAddr])
     return deviceDict
+
 
 ###### Increment the device join count by 1 ######
 def dictCountInc(macAddr):
@@ -134,6 +132,7 @@ def dictCountInc(macAddr):
     print(deviceDict[macAddr])
     return deviceDict
 
+
 ###### Re-Login to the gateway and send command ######
 def restart(ssh, done):
     ssh.close()
@@ -141,6 +140,7 @@ def restart(ssh, done):
     print('restart done', done)
     gwLogin(gw_name, username, password)
     return done
+
 
 ###### Determine if all devices have joined ######
 def checkNumDevs(done):
@@ -151,6 +151,7 @@ def checkNumDevs(done):
         done[0]='yes'
         print(done)
     return done
+
 
 ###### print dictionary to file ######
 def printOut(macAddr):
