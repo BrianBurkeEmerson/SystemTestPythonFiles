@@ -1,0 +1,4 @@
+1.) Run web installer
+2.) locate python in local directory and run it in command prompt by typing "python"
+3.) to install required packages to go python directory and type "cd Scripts"
+4.) then type "pip3 install {package name}"
