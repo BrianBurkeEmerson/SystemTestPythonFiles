@@ -1,0 +1,72 @@
+Oct-09-2019 09:15:57 Last login: Wed Oct  9 20:32:04 2019 from 10.224.10.210
+Oct-09-2019 09:15:57 root@brianGW:~# rm /var/apache/data/hartserver.txt
+Oct-09-2019 09:15:57 root@brianGW:~# tail -f /var/apache/data/hartserver.txt | grep Discovery
+Oct-09-2019 09:15:57 root@brianGW:~# cat>/var/apache/data/hartserver.txt
+Oct-09-2019 09:15:57 
+Oct-09-2019 09:15:57 ^C
+Oct-09-2019 09:15:57 root@brianGW:~# 
+Oct-09-2019 09:15:57 root@brianGW:~# nwconsole
+Oct-09-2019 09:15:57 username: admin
+Oct-09-2019 09:15:58 password: 
+Oct-09-2019 09:15:58 
+Oct-09-2019 09:15:58 SmartMesh Manager 3.2.2.3
+Oct-09-2019 09:15:58 Manager UpTime: 0 days, 00:00:03
+Oct-09-2019 09:15:58 
+Oct-09-2019 09:15:58 > trace motest on
+Oct-09-2019 09:15:58 > 
+Oct-09-2019 09:15:59 APD [20:32:17.835] re-synch
+Oct-09-2019 09:15:59 
+Oct-09-2019 09:15:59 Mote #1 changed state to APHello
+Oct-09-2019 09:15:59 
+Oct-09-2019 09:15:59 Mote #1 changed state to Negot1
+Oct-09-2019 09:15:59 
+Oct-09-2019 09:15:59 Mote #1 changed state to Negot2
+Oct-09-2019 09:15:59 
+Oct-09-2019 09:15:59 Mote #1 changed state to Oper
+Oct-09-2019 09:22:46 [20:39:04] Ping mote 1: sent 1, rcvd 1, 0% lost. Ave.roundtrip: 0.052s hops: 0
+Oct-09-2019 09:22:46 
+Oct-09-2019 09:22:49 Mote #2 changed state to Lost
+Oct-09-2019 09:22:49 
+Oct-09-2019 09:22:49 Mote #2 changed state to Negot1
+Oct-09-2019 09:22:49 
+Oct-09-2019 09:22:51 Mote #2 changed state to Negot2
+Oct-09-2019 09:22:51 
+Oct-09-2019 09:23:17 Mote #2 changed state to Conn
+Oct-09-2019 09:23:17 
+Oct-09-2019 09:23:40 Mote #2 changed state to Oper
+Oct-09-2019 09:23:41 10/09/19 20:39:58.629 Discovery status for 00-1B-1E-26-5A-0F-A6-E4 is Refreshing Cache.
+Oct-09-2019 09:23:41 
+Oct-09-2019 09:23:46 10/09/19 20:40:03.759 Discovery status for 00-1B-1E-26-5A-0F-A6-E4 is Not Publishing.
+Oct-09-2019 09:23:46 
+Oct-09-2019 09:25:38 10/09/19 20:41:56.404 Discovery status for 00-1B-1E-26-5A-0F-A6-E4 is Responding.
+Oct-09-2019 09:25:38 
+Oct-09-2019 09:27:36 Mote #3 changed state to Lost
+Oct-09-2019 09:27:36 
+Oct-09-2019 09:27:36 Mote #3 changed state to Negot1
+Oct-09-2019 09:27:36 
+Oct-09-2019 09:27:38 Mote #3 changed state to Negot2
+Oct-09-2019 09:27:38 
+Oct-09-2019 09:27:57 Mote #3 changed state to Conn
+Oct-09-2019 09:27:57 
+Oct-09-2019 09:28:18 Mote #3 changed state to Oper
+Oct-09-2019 09:28:19 10/09/19 20:44:36.735 Discovery status for 00-1B-1E-26-59-5B-A2-25 is Refreshing Cache.
+Oct-09-2019 09:28:19 
+Oct-09-2019 09:28:24 10/09/19 20:44:41.847 Discovery status for 00-1B-1E-26-59-5B-A2-25 is Not Publishing.
+Oct-09-2019 09:28:24 
+Oct-09-2019 09:31:13 10/09/19 20:47:30.779 Discovery status for 00-1B-1E-26-59-5B-A2-25 is Responding.
+Oct-09-2019 09:31:13 
+Oct-09-2019 09:34:03 Mote #4 changed state to Lost
+Oct-09-2019 09:34:03 
+Oct-09-2019 09:34:03 Mote #4 changed state to Negot1
+Oct-09-2019 09:34:03 
+Oct-09-2019 09:34:04 Mote #4 changed state to Negot2
+Oct-09-2019 09:34:04 
+Oct-09-2019 09:34:19 Mote #4 changed state to Conn
+Oct-09-2019 09:34:19 
+Oct-09-2019 09:34:37 Mote #4 changed state to Oper
+Oct-09-2019 09:34:37 10/09/19 20:50:55.514 Discovery status for 00-1B-1E-26-71-6A-F1-84 is Refreshing Cache.
+Oct-09-2019 09:34:37 
+Oct-09-2019 09:34:42 10/09/19 20:51:00.567 Discovery status for 00-1B-1E-26-71-6A-F1-84 is Not Publishing.
+Oct-09-2019 09:34:42 
+Oct-09-2019 09:37:21 10/09/19 20:53:39.329 Discovery status for 00-1B-1E-26-71-6A-F1-84 is Responding.
+Oct-09-2019 09:37:21 

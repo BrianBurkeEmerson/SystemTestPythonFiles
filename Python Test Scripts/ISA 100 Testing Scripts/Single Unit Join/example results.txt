@@ -1,0 +1,34 @@
+21:28:15
+Successfully connected to 781temp4...
+command sent
+command sent
+sending results
+Last login: Wed May 22 19:44:16 2019 from 10.224.42.24
+cd /access_node/tmp
+root@781temp4:~# cd /access_node/tmp
+oin failed|device join|BBE6"mp# tail -n 20 -f mh.log | egrep "truncated|reboot|j 
+2019-05-22 20:28:28 Alert: SMO device join MAC = 0022:FF00:0002:BBE6 IPv6=FC00:0000:0022:FF00:0002:BBE6:0073:00E6 Status=SecJoinReqReceived(4) CommSw=2009(0:0) => Drop(Status!=Registered)
+mac =  0022:FF00:0002:BBE6
+dev Count =  1
+devs joined =  0
+{'0022:FF00:0002:BBE6': {'join count': 0}}
+2019-05-22 20:28:30 GSAP_IN (S  1 T 2147484636) ALERT_NOTIFY IND data(129) E6007300E600000022FF000002BBE60001013F..
+dev Count =  1
+devs joined =  0
+{'0022:FF00:0002:BBE6': {'join count': 0}}
+2019-05-22 20:28:30 Alert: SCO contract establish:SM:SMAP -> 0022:FF00:0002:BBE6:DMAP CB:-10 EB:  -3 MaxSendWindow:  0 id:15 Aperiodic NSDUSize:   86 Reliability:0
+dev Count =  1
+devs joined =  0
+{'0022:FF00:0002:BBE6': {'join count': 0}}
+2019-05-22 20:28:30 Alert: SCO contract establish:0022:FF00:0002:BBE6:DMAP -> SM:SMAP CB:-10 EB: -10 MaxSendWindow:  0 id:1 Aperiodic NSDUSize:   96 Reliability:0
+dev Count =  1
+devs joined =  0
+{'0022:FF00:0002:BBE6': {'join count': 0}}
+2019-05-22 20:28:56 Alert: SMO device join MAC = 0022:FF00:0002:BBE6 IPv6=FC00:0000:0022:FF00:0002:BBE6:0073:00E6 Status=Registered(20) CommSw=2009(0:0)
+macString1 = 0022:FF00:0002:BBE6
+['0022:FF00:0002:BBE6']
+{'0022:FF00:0002:BBE6': {'join count': 1, 'join time': '2019-05-22 20:28:56'}}
+MAC:  0022:FF00:0002:BBE6
+         join count: 1
+         join time: 2019-05-22 20:28:56
+1 1
