@@ -33,8 +33,6 @@ The script will then create a log file with the same data that it prints to the 
 
 
 
-
-
                                    HART SINGLE UNIT JOIN
                                    
 The script will run the exact same as the network join except GLOBAL VARIABLE: 'DEVICE COUNT' (line 282) 
@@ -282,6 +280,7 @@ DoneList = []
 global startTime
 startTime = datetime.now()
 DeviceCount = 1                                  #Number of devices on network... 1 for single unit join test
+RangeTesting = False
 def main():
     gw_name = 'brianGW'
     username = 'root'
@@ -345,7 +344,7 @@ def main():
             publish = datetime.now() - startTime
             sendCommand(stopTail, chan, done)
             nwconsoleLogin(chan,done)
-            #wait30()
+            wait30()
             done = list(done)
             done[1] = 'running'
             getStats(chan, ssh, done, outFile)
