@@ -4,13 +4,10 @@ Created on Thu Mar 21 08:54:57 2019
 
 @author: Brian Burke [FCT]
 """
-#%%
 import paramiko, time, re
 from datetime import datetime
 import threading
 import queue
-import matplotlib.pyplot as plt
-import numpy as np
 
 '''
 HART network join time script can be used for both a network join test and a single join test.
@@ -182,10 +179,10 @@ def MoteFinder2(line):
     if Mote in MoteList:
         return Mote
 
-def getStats(interval, chan, ssh, done):
+def getStats(interval, chan, ssh, done, outFile):
     print(done)
     sendCommand('show stat life ', chan, done)
-    results(chan,done,outFile)
+    results(chan,done, outFile)
     return done
 
 

@@ -183,7 +183,7 @@ def MoteFinder2(line):
     if Mote in MoteList:
         return Mote
 
-def getStats(chan, ssh, done):
+def getStats(chan, ssh, done,outFile):
     print(done)
     sendCommand('show stat life ', chan, done)
     results(chan,done,outFile)
