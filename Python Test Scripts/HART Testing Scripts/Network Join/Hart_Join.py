@@ -34,7 +34,6 @@ The script will then create a log file with the same data that it prints to the 
 
 
 
-
                                    HART SINGLE UNIT JOIN
                                    
 The script will run the exact same as the network join except GLOBAL VARIABLE: 'DEVICE COUNT' (line 282) 
