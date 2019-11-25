@@ -1,4 +1,3 @@
-#%%
 import paramiko, time, re
 import pandas as pd
 import numpy as np
@@ -7,6 +6,22 @@ import matplotlib.pyplot as plt
 from collections import Counter
 
 
+'''
+                                    ISA SINGLE UNIT JOIN
+                                    
+1.) Modify gw_name, username, and password to reflect device and network being tested
+2.) Start Script and power on the device at the EXACT same time
+3.) The script will monitor the ISA logs until it sees a full join 
+4.) The script will print data to window and to a txt file in working dir
+
+
+
+'''
+
+
+gw_name = '10.224.42.86'
+password = 'root'
+username = 'root'
 ###### Login to gateway SSH######
 def gwLogin(gateway,username,password):
     try:
@@ -162,9 +177,7 @@ def printOut(macAddr):
 #############################################################################################################################################
 
 ###### Initial login and send command ######
-gw_name = '10.224.42.86'
-password = 'root'
-username = 'root'
+
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 

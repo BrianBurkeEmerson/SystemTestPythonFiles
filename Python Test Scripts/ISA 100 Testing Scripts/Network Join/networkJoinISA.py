@@ -1,11 +1,27 @@
 #%%
 import paramiko, time, re
-import pandas as pd
-import numpy as np
 from datetime import datetime
-import matplotlib.pyplot as plt
-from collections import Counter
+import openpyxl
+from openpyxl.utils.dataframe import dataframe_to_rows
+import pandas as pd
 
+'''
+                                       ISA NETWORK JOIN SCRIPT
+                                       
+1.) Modify gw_name, username, password, and expectedDevs to reflect device and network being tested
+2.) Start Script THEN power on device.
+3.) the script will monitor logs and begin a timer once the backbone joins the networks
+4.) once the script has logged the number of expected devices to join it will output all the data to an excel
+    file in the same working directory that python is being ran from.
+
+
+
+'''
+
+gw_name = '10.224.42.86'
+password = 'root'
+username = 'root'
+expectedDevs = 20
 
 ###### Login to gateway SSH######
 def gwLogin(gateway,username,password):
@@ -166,9 +182,7 @@ def printOut(macAddr):
 #############################################################################################################################################
 
 ###### Initial login and send command ######
-gw_name = '10.224.42.86'
-password = 'root'
-username = 'root'
+
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -176,7 +190,7 @@ gwLogin(gw_name, username, password)
 chan = ssh.invoke_shell()
 
 done = 'no','running'
-expectedDevs = 20
+
 
 ###### Follows mh.log in real time - filtered ######
 command1 = 'tail -f -n 100 mh.log | egrep "truncated|reboot|join failed|device join"'
@@ -240,74 +254,8 @@ while done[0] == 'no':
     if done[1] == 'yes':
         exit()
 
-#%%
-##GRAPH ATTEMPS
-
-missedList = []
-for mac in deviceDict:
-    missedList.append(deviceDict[mac]['count'])
-missedList.sort()
-print(missedList)
-fig, ax = plt.subplots(figsize=(15, 5))
-
-D = Counter(missedList)
-plt.bar(range(len(D)), list(D.values()), align='center')
-plt.xticks(range(len(D)), list(D.keys()))
-plt.title('Attempts')
-plt.ylabel('Number of Devices')
-plt.xlabel('Number of Attempts')
-rects = ax.patches
-labels = ["label%d" % i for i in range(len(rects))]
-for rect, label in zip(rects, labels):
-    height = rect.get_height()
-    ax.text(rect.get_x() + rect.get_width() / 2, height, height,
-            ha='center', va='bottom')
-plt.show()
-plt.show()
-
-
-#%%
-for mac in deviceDict:
-    print("MAC: " + mac + "---- Data ----" + str(deviceDict[mac]))
-FirstJoinSec = []
-PubTime = []
-for mac in deviceDict:
-    FirstJoinSec.append(int(deviceDict[mac]['FirstJoinTime'].split(":")[1])*60 + int(deviceDict[mac]['FirstJoinTime'].split(":")[2]))
-    PubTime.append(int(deviceDict[mac]['time'].split(":")[1])*60 + int(deviceDict[mac]['time'].split(":")[2]))
-
-#%%
-missedList = []
-for mac in deviceDict:
-    missedList.append(deviceDict[mac]['time'])
-missedList = sorted(missedList)
-minlist = []
-for i in missedList:
-    minlist.append(int(i.split(":")[1]))
-x = [0,5,15,30,45]
-fig, ax = plt.subplots(figsize=(15, 5))
-plt.title("Time to Join")
-plt.ylabel('Number of Devices')
-plt.xlabel('Time to Join (minutes)')
-plt.hist(minlist,width = 2)
-plt.xticks(np.arange(min(x), max(x)+1, 1.0))
-
-rects = ax.patches
-labels = ["label%d" % i for i in range(len(rects))]
-for rect, label in zip(rects, labels):
-    height = rect.get_height()
-    if height != 0:
-        ax.text(rect.get_x() + rect.get_width() / 2, height, height,
-                ha='center', va='bottom')
-plt.show()
-
-
-#%%
-
-import openpyxl
-from openpyxl.utils.dataframe import dataframe_to_rows
-import pandas as pd
 wb = openpyxl.Workbook()
-wb.save(r"C:\Users\E1256881\Desktop\ISA100Testing\Dan Files\2019 - 05 ISA 100\Python Scripts\ISA_DATA.xlsx")
+wb.save("ISA_DATA.xlsx")
 ws1=wb.create_sheet('Sheet1')
 df = pd.DataFrame.from_dict(deviceDict, orient='index') # convert dict to dataframe
 rows = dataframe_to_rows(df)
@@ -316,7 +264,7 @@ for r_idx, row in enumerate(rows, 1):
     for c_idx, value in enumerate(row, 1):
          ws1.cell(row=r_idx, column=c_idx, value=value)
 
-wb.save(r"C:\Users\E1256881\Desktop\ISA100Testing\Dan Files\2019 - 05 ISA 100\Python Scripts\ISA_DATA.xlsx")
+wb.save("ISA_DATA.xlsx")
 
 
 
