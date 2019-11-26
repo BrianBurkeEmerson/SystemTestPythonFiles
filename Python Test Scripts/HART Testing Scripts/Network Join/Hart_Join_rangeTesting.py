@@ -43,6 +43,12 @@ data is captured, but the times will still be accurate.
 
 '''
 
+DeviceCount = 10
+gw_name = 'brianGW'
+username = 'root'
+password = 'emerson1'
+RangeTesting = True
+
 class devStatus():                          #Class devStatus desiged to store all data for each device. Every time the system detects a new Mote a new class instance is created
 
     def __init__(self, mote):             #class is named by mote and also owns a data type mote where mote number is stored
@@ -278,14 +284,9 @@ MoteList = []                                      #All the globals listed above
 DevList = []
 DoneList = []
 global startTime
-startTime = datetime.now()
-DeviceCount = 1                                  #Number of devices on network... 1 for single unit join test
-RangeTesting = False
+startTime = datetime.now()                               #Number of devices on network... 1 for single unit join test
 
 def main():
-    gw_name = 'brianGW'
-    username = 'root'
-    password = 'emerson1'
     outFile = "HART_Join_log.txt"
     datafile = "HART_Join_data.txt"
     print("",open(outFile, "w"))
