@@ -12,7 +12,7 @@ from collections import Counter
 1.) Modify gw_name, username, and password to reflect device and network being tested
 2.) Start Script and power on the device at the EXACT same time
 3.) The script will monitor the ISA logs until it sees a full join 
-4.) The script will print data to window and to a txt file in working dir
+4.) The script will print data to window and to a txt file in working directory
 
 
 
