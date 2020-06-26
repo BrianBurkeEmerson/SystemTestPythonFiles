@@ -43,6 +43,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 import time
 import copy
 
@@ -59,6 +60,20 @@ ALL_DEVICES_TEXT = "txtAllDevices"
 LIVE_DEVICES_TEXT = "txtLive"
 UNREACHABLE_DEVICES_TEXT = "txtUnreachable"
 LOW_BATTERY_TEXT = "txtPowerModuleLow"
+
+# These are for page navigation in the devices page
+FIRST_PAGE_CLASS = "dgrid-first"
+LAST_PAGE_CLASS = "dgrid-last"
+NEXT_PAGE_CLASS = "dgrid-next"
+PREVIOUS_PAGE_CLASS = "dgrid-previous"
+
+# These are for table elements
+TABLE_NAME_FIELD = "field-Name"
+TABLE_PV_FIELD = "field-PV"
+TABLE_SV_FIELD = "field-SV"
+TABLE_TV_FIELD = "field-TV"
+TABLE_QV_FIELD = "field-QV"
+TABLE_LAST_UPDATE_FIELD = "field-lastUpdate"
 
 # The following constants are used for delays/waits
 REPEAT_ACTION_DELAY = 0.1
@@ -102,6 +117,7 @@ class GwDeviceCounter():
 
         # Finally, open the device tab before giving control back to the user/application
         self.retry_until_success(self.open_devices_tab)
+        time.sleep(TAB_CHANGE_DELAY)
 
 
     def gateway_login(self):
@@ -232,6 +248,41 @@ class GwDeviceCounter():
 
         return counts
     
+
+    def get_page_buttons(self, class_name):
+        buttons = {
+            "HART" : self.driver.find_elements_by_class_name(class_name)[0]
+        }
+
+        if self.supports_isa:
+            buttons["ISA"] : self.driver.find_elements_by_class_name(class_name)[1]
+
+        return buttons
+
+
+    def get_first_page_buttons(self):
+        return self.get_page_buttons(FIRST_PAGE_CLASS)
+    
+
+    def get_last_page_buttons(self):
+        return self.get_page_buttons(LAST_PAGE_CLASS)
+
+    
+    def get_next_page_buttons(self):
+        return self.get_page_buttons(NEXT_PAGE_CLASS)
+
+
+    def get_previous_page_buttons(self):
+        return self.get_page_buttons(PREVIOUS_PAGE_CLASS)
+    
+
+    def count_hart_device_types(self):
+        self.change_device_tab(LIVE_DEVICES_TEXT)
+        self.get_first_page_buttons()["HART"].click()
+
+        a = self.driver.find_elements_by_class_name(TABLE_NAME_FIELD)[1].find_elements(By.XPATH, ".//div//*")[2].get_attribute("innerHTML")
+        return a
+
 
     # Destroys the instance and closes the web browser
     def close(self):
