@@ -7,9 +7,12 @@ gateway = GwDeviceCounter( \
 
 # Get every type of count and print them to the console
 #print(gateway.get_every_type_devices_count())
-time.sleep(1)
-a = gateway.count_hart_device_types()
+#time.sleep(1)
+#a = gateway.count_hart_device_types()
 
+#print(a)
+
+a = gateway.test()
 print(a)
 
 # Close the browser

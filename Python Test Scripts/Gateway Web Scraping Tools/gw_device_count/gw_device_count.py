@@ -56,6 +56,7 @@ DEVICES_BUTTON = "devicesMenu"
 DEVICE_COUNT_STATUS = "dgrid-status"
 TEXT_BEFORE_COUNT = "of "
 TEXT_AFTER_COUNT = " results"
+INDEX_SEPARATOR = " - "
 
 # These are used to identify the four tabs along the top of the devices page
 # ALL_DEVICES_TEXT = "txtAllDevices"
@@ -86,7 +87,7 @@ REPEAT_ACTION_DELAY = 0.1
 NUM_SECONDS_BEFORE_REFRESH = 10
 REPEAT_ACTION_COUNT_BEFORE_REFRESH = NUM_SECONDS_BEFORE_REFRESH / REPEAT_ACTION_DELAY
 DELAY_AFTER_CLOSING_FACTORY_DIALOG = 3
-TAB_CHANGE_DELAY = 3 # Tabs can take an unnecessarily long time to update counts properly, so this may need to be increased
+#TAB_CHANGE_DELAY = 3 # Tabs can take an unnecessarily long time to update counts properly, so this may need to be increased
 
 # hostname: The device you are connecting to
 # user: Username for gateway login
@@ -216,10 +217,39 @@ class GwDeviceCounter():
         return int(results_text[start_index:end_index])
     
 
+    # Returns which devices are displayed (example "6 - 10 of x results" returns start as 6, end as 10, and length as 5)
+    def get_displayed_device_indices(self):
+        dgrid_statuses = self.driver.find_elements_by_class_name(DEVICE_COUNT_STATUS)
+
+        return_dict = {
+            "HART" : self.parse_displayed_device_text(dgrid_statuses[0].text)
+        }
+
+        if self.supports_isa:
+            return_dict["ISA"] = self.parse_displayed_device_text(dgrid_statuses[1].text)
+
+        return return_dict
+
+
+    # Takes the text from get_display_device_indices() and parses it
+    def parse_displayed_device_text(self, results_text):
+        start_device = int(results_text[0:results_text.find(INDEX_SEPARATOR)])
+        end_device = int(results_text[results_text.find(INDEX_SEPARATOR) + len(INDEX_SEPARATOR):results_text.find(TEXT_BEFORE_COUNT)])
+
+        return_dict = {
+            "Start" : start_device,
+            "End" : end_device,
+            "Length" : end_device - start_device + 1
+        }
+
+        return return_dict
+    
+
     # Wait until Javascript on page updates counts of WirelessHART and ISA devices to match what is show on the four devices tabs
     # current_tab: Which tab is selected for counting devices
     # ---- Options are "All", "Live", "Unreachable", and "Low Battery"
     def wait_for_count_updates(self):
+        time.sleep(REPEAT_ACTION_DELAY)
         tab_span_definition = ""
         if self.current_devices_tab == "All":
             tab_span_definition = ALL_DEVICES_SPAN
@@ -240,7 +270,7 @@ class GwDeviceCounter():
             if current_count == expected_count:
                 not_equal = False
             else:
-                time.sleep(0.1)
+                time.sleep(REPEAT_ACTION_DELAY)
 
 
     # After selecting the type of count to report, search the page and return them as a dictionary
@@ -297,12 +327,14 @@ class GwDeviceCounter():
     
 
     def get_page_buttons(self, class_name):
+        buttons_unsorted = self.driver.find_elements_by_class_name(class_name)
+
         buttons = {
-            "HART" : self.driver.find_elements_by_class_name(class_name)[0]
+            "HART" : buttons_unsorted[0]
         }
 
         if self.supports_isa:
-            buttons["ISA"] : self.driver.find_elements_by_class_name(class_name)[1]
+            buttons["ISA"] = buttons_unsorted[1]
 
         return buttons
 
@@ -323,14 +355,84 @@ class GwDeviceCounter():
         return self.get_page_buttons(PREVIOUS_PAGE_CLASS)
     
 
-    def count_hart_device_types(self):
+    # Takes the tables displayed on the devices page and converts them into dictionaries embedded in a list
+    # Before use, the application should have already selected the desired tab
+    # device_type: Should be "HART" or "ISA" to specify which devices are being converted into a table.
+    def convert_table_into_dicts(self, device_type = "HART"):
+        # Go to the first page of devices
+        self.get_first_page_buttons()[device_type].click()
+
+        # Check if any devices/table entries are available and return an empty list if none are present
+        if self.get_counts()[device_type] <= 0:
+            return []
+        else:
+            # Create the list that will be returned
+            return_table = []
+            row_num = 1
+
+            while row_num <= self.get_counts()[device_type]:
+                # Check if the next page button needs to be pressed
+                if row_num > self.get_displayed_device_indices()[device_type]["End"]:
+                    self.get_next_page_buttons()[device_type].click()
+
+                # Create the dictionary appended to the list for a given row
+                row_dict = {}
+
+                # Determine the row index for the given device
+                # ISA devices are offset by the number of displayed HART devices
+                # Multiple devices are returned by find_elements_by_class_name()
+                css_row_index = row_num - self.get_displayed_device_indices()[device_type]["Start"]
+                if (device_type == "HART"):
+                    css_row_index += 1 # HART devices have an offset of 1 (Column header rows have index 0)
+                elif (device_type == "ISA"):
+                    css_row_index += (1 + self.get_displayed_device_indices()["HART"]["Length"] + 1) # ISA devices are offset by the number of HART devices and 2 header rows
+
+                for cell in (TABLE_NAME_FIELD, TABLE_PV_FIELD, TABLE_SV_FIELD, TABLE_TV_FIELD, TABLE_QV_FIELD, TABLE_LAST_UPDATE_FIELD):
+                    try:
+                        row_cell = self.driver.find_elements_by_class_name(cell)[css_row_index] # Get the correct cell for a given row
+                        
+                        # Getting the element that displays the text is different depending on the field type
+                        cell_text_element = None
+                        if cell == TABLE_NAME_FIELD:
+                            cell_text_element = row_cell.find_elements(By.XPATH, ".//div//*")[2]
+                        elif cell == TABLE_LAST_UPDATE_FIELD:
+                            cell_text_element = row_cell.find_elements(By.XPATH, ".//span//*")[0]
+                        else:
+                            cell_text_element = row_cell.find_elements(By.XPATH, ".//span//*")[1]
+
+                        row_dict[cell] = cell_text_element.get_attribute("innerHTML") # Get the text inside the cell
+                    except:
+                        row_dict[cell] = "" # If nothing is entered in the cell, an exception is raised, so handle the empty entry here
+                
+                return_table.append(row_dict) # Add the row converted to a dict to the returned list
+                print(row_num)
+
+                # Increment the row count and check if all rows were added
+                row_num += 1
+            
+            return return_table
+
+
+    def count_hart_device_types_test(self):
+        # Move to the live devices tab and reset to the first page
         self.change_device_tab(LIVE_DEVICES_SPAN)
         self.get_first_page_buttons()["HART"].click()
 
+        # Turn the table into a dictionary
         a = self.driver.find_elements_by_class_name(TABLE_NAME_FIELD)[1].find_elements(By.XPATH, ".//div//*")[2].get_attribute("innerHTML")
+        a = self.driver.find_elements_by_class_name(TABLE_PV_FIELD)[1].find_elements(By.XPATH, ".//span//*")[1].get_attribute("innerHTML")
+        a = self.driver.find_elements_by_class_name(TABLE_SV_FIELD)[1].find_elements(By.XPATH, ".//span//*")[1].get_attribute("innerHTML")
+        a = self.driver.find_elements_by_class_name(TABLE_TV_FIELD)[1].find_elements(By.XPATH, ".//span//*")[1].get_attribute("innerHTML")
+        a = self.driver.find_elements_by_class_name(TABLE_QV_FIELD)[1].find_elements(By.XPATH, ".//span//*")[1].get_attribute("innerHTML")
+        a = self.driver.find_elements_by_class_name(TABLE_LAST_UPDATE_FIELD)[1].find_elements(By.XPATH, ".//span//*")[0].get_attribute("innerHTML")
         return a
+    
+
+    def test(self):
+        self.change_device_tab(LIVE_DEVICES_SPAN)
+        return self.convert_table_into_dicts()
 
 
-    # Destroys the instance and closes the web browser
+    # Closes the web browser
     def close(self):
         self.driver.close()
