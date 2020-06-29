@@ -56,10 +56,16 @@ DEVICES_BUTTON = "devicesMenu"
 DEVICE_COUNT_STATUS = "dgrid-status"
 TEXT_BEFORE_COUNT = "of "
 TEXT_AFTER_COUNT = " results"
-ALL_DEVICES_TEXT = "txtAllDevices"
-LIVE_DEVICES_TEXT = "txtLive"
-UNREACHABLE_DEVICES_TEXT = "txtUnreachable"
-LOW_BATTERY_TEXT = "txtPowerModuleLow"
+
+# These are used to identify the four tabs along the top of the devices page
+# ALL_DEVICES_TEXT = "txtAllDevices"
+# LIVE_DEVICES_TEXT = "txtLive"
+# UNREACHABLE_DEVICES_TEXT = "txtUnreachable"
+# LOW_BATTERY_TEXT = "txtPowerModuleLow"
+ALL_DEVICES_SPAN = "allDevices"
+LIVE_DEVICES_SPAN = "liveDevices"
+UNREACHABLE_DEVICES_SPAN = "unreachableDevices"
+LOW_BATTERY_SPAN = "powerModuleLowDevices"
 
 # These are for page navigation in the devices page
 FIRST_PAGE_CLASS = "dgrid-first"
@@ -100,6 +106,7 @@ class GwDeviceCounter():
         self.supports_isa = supports_isa
         self.factory_enabled = factory_enabled
         self.old_login_fields = old_login_fields
+        self.current_devices_tab = ""
 
         # Create a profile that allows invalid security certificates (gateways have self-signed certificates)
         profile = webdriver.FirefoxProfile()
@@ -117,7 +124,8 @@ class GwDeviceCounter():
 
         # Finally, open the device tab before giving control back to the user/application
         self.retry_until_success(self.open_devices_tab)
-        time.sleep(TAB_CHANGE_DELAY)
+        self.wait_for_count_updates()
+        #time.sleep(TAB_CHANGE_DELAY)
 
 
     def gateway_login(self):
@@ -176,17 +184,29 @@ class GwDeviceCounter():
     def open_devices_tab(self):
         devices_menu = self.driver.find_element_by_id(DEVICES_BUTTON)
         devices_menu.click()
+        self.current_devices_tab = "All"
     
 
     # Changes the devices tab between All/Live/Unreachable/Low Battery
-    def change_device_tab(self, tab = ALL_DEVICES_TEXT):
+    def change_device_tab(self, tab = ALL_DEVICES_SPAN):
         # Manipulate the cursor to change tabs since the device tabs are not WebElements
         tab_to_set = self.driver.find_element_by_id(tab)
         cursor = ActionChains(self.driver).move_to_element(tab_to_set).click(tab_to_set)
         cursor.perform()
 
+        # Update the current_tab to make waiting for Javascript work as intended
+        if tab == ALL_DEVICES_SPAN:
+            self.current_devices_tab = "All"
+        elif tab == LIVE_DEVICES_SPAN:
+            self.current_devices_tab = "Live"
+        elif tab == UNREACHABLE_DEVICES_SPAN:
+            self.current_devices_tab = "Unreachable"
+        elif tab == LOW_BATTERY_SPAN:
+            self.current_devices_tab = "Low Battery"
+
         # Sleep after changing tabs to let the counts update
-        time.sleep(TAB_CHANGE_DELAY)
+        self.wait_for_count_updates()
+        #time.sleep(TAB_CHANGE_DELAY)
 
 
     # After retrieving the correct elements from the webpage, parse the strings and return integers
@@ -194,6 +214,33 @@ class GwDeviceCounter():
         start_index = results_text.find(TEXT_BEFORE_COUNT) + len(TEXT_BEFORE_COUNT)
         end_index = results_text.find(TEXT_AFTER_COUNT)
         return int(results_text[start_index:end_index])
+    
+
+    # Wait until Javascript on page updates counts of WirelessHART and ISA devices to match what is show on the four devices tabs
+    # current_tab: Which tab is selected for counting devices
+    # ---- Options are "All", "Live", "Unreachable", and "Low Battery"
+    def wait_for_count_updates(self):
+        tab_span_definition = ""
+        if self.current_devices_tab == "All":
+            tab_span_definition = ALL_DEVICES_SPAN
+        elif self.current_devices_tab == "Live":
+            tab_span_definition = LIVE_DEVICES_SPAN
+        elif self.current_devices_tab == "Unreachable":
+            tab_span_definition = UNREACHABLE_DEVICES_SPAN
+        elif self.current_devices_tab == "Low Battery":
+            tab_span_definition = LOW_BATTERY_SPAN
+
+        not_equal = True
+        while not_equal:
+            current_counts_dict = self.get_counts()
+            current_count = current_counts_dict["HART"] + current_counts_dict["ISA"]
+
+            expected_count = int(self.driver.find_element_by_id(tab_span_definition).get_attribute("innerHTML"))
+
+            if current_count == expected_count:
+                not_equal = False
+            else:
+                time.sleep(0.1)
 
 
     # After selecting the type of count to report, search the page and return them as a dictionary
@@ -215,25 +262,25 @@ class GwDeviceCounter():
 
     # Reports the total number of devices connected and disconnected
     def get_all_devices_count(self):
-        self.change_device_tab(tab = ALL_DEVICES_TEXT)
+        self.change_device_tab(tab = ALL_DEVICES_SPAN)
         return self.get_counts()
     
 
     # Reports the total number of live devices
     def get_live_devices_count(self):
-        self.change_device_tab(tab = LIVE_DEVICES_TEXT)
+        self.change_device_tab(tab = LIVE_DEVICES_SPAN)
         return self.get_counts()
     
 
     # Reports the total number of unreachable devices
     def get_unreachable_devices_count(self):
-        self.change_device_tab(tab = UNREACHABLE_DEVICES_TEXT)
+        self.change_device_tab(tab = UNREACHABLE_DEVICES_SPAN)
         return self.get_counts()
     
 
     # Reports the total number of devices with low batteries
     def get_low_battery_devices_count(self):
-        self.change_device_tab(tab = LOW_BATTERY_TEXT)
+        self.change_device_tab(tab = LOW_BATTERY_SPAN)
         return self.get_counts()
     
 
@@ -277,7 +324,7 @@ class GwDeviceCounter():
     
 
     def count_hart_device_types(self):
-        self.change_device_tab(LIVE_DEVICES_TEXT)
+        self.change_device_tab(LIVE_DEVICES_SPAN)
         self.get_first_page_buttons()["HART"].click()
 
         a = self.driver.find_elements_by_class_name(TABLE_NAME_FIELD)[1].find_elements(By.XPATH, ".//div//*")[2].get_attribute("innerHTML")
