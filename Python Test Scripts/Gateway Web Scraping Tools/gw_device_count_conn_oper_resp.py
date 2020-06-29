@@ -13,7 +13,7 @@ gateway = GwDeviceCounter( \
 gateway.change_device_tab(gdc.LIVE_DEVICES_SPAN)
 
 # Get the Name and PV fields
-data = gateway.convert_table_into_dicts(fields = (gdc.TABLE_NAME_FIELD, gdc.TABLE_PV_FIELD))
+data = gateway.convert_table_into_dicts(device_type = "HART", fields = (gdc.TABLE_NAME_FIELD, gdc.TABLE_PV_FIELD))
 
 # Create variables to track the types of live devices
 connected_state = 0
