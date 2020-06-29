@@ -59,10 +59,6 @@ TEXT_AFTER_COUNT = " results"
 INDEX_SEPARATOR = " - "
 
 # These are used to identify the four tabs along the top of the devices page
-# ALL_DEVICES_TEXT = "txtAllDevices"
-# LIVE_DEVICES_TEXT = "txtLive"
-# UNREACHABLE_DEVICES_TEXT = "txtUnreachable"
-# LOW_BATTERY_TEXT = "txtPowerModuleLow"
 ALL_DEVICES_SPAN = "allDevices"
 LIVE_DEVICES_SPAN = "liveDevices"
 UNREACHABLE_DEVICES_SPAN = "unreachableDevices"
@@ -87,7 +83,6 @@ REPEAT_ACTION_DELAY = 0.1
 NUM_SECONDS_BEFORE_REFRESH = 10
 REPEAT_ACTION_COUNT_BEFORE_REFRESH = NUM_SECONDS_BEFORE_REFRESH / REPEAT_ACTION_DELAY
 DELAY_AFTER_CLOSING_FACTORY_DIALOG = 3
-#TAB_CHANGE_DELAY = 3 # Tabs can take an unnecessarily long time to update counts properly, so this may need to be increased
 
 # hostname: The device you are connecting to
 # user: Username for gateway login
@@ -126,7 +121,6 @@ class GwDeviceCounter():
         # Finally, open the device tab before giving control back to the user/application
         self.retry_until_success(self.open_devices_tab)
         self.wait_for_count_updates()
-        #time.sleep(TAB_CHANGE_DELAY)
 
 
     def gateway_login(self):
@@ -207,7 +201,6 @@ class GwDeviceCounter():
 
         # Sleep after changing tabs to let the counts update
         self.wait_for_count_updates()
-        #time.sleep(TAB_CHANGE_DELAY)
 
 
     # After retrieving the correct elements from the webpage, parse the strings and return integers
