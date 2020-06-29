@@ -249,7 +249,8 @@ class GwDeviceCounter():
     # current_tab: Which tab is selected for counting devices
     # ---- Options are "All", "Live", "Unreachable", and "Low Battery"
     def wait_for_count_updates(self):
-        time.sleep(REPEAT_ACTION_DELAY)
+        time.sleep(0.5)
+
         tab_span_definition = ""
         if self.current_devices_tab == "All":
             tab_span_definition = ALL_DEVICES_SPAN
@@ -358,7 +359,8 @@ class GwDeviceCounter():
     # Takes the tables displayed on the devices page and converts them into dictionaries embedded in a list
     # Before use, the application should have already selected the desired tab
     # device_type: Should be "HART" or "ISA" to specify which devices are being converted into a table.
-    def convert_table_into_dicts(self, device_type = "HART"):
+    # fields: The fields to record can be specified if not all are needed which can decrease the time to collect the data
+    def convert_table_into_dicts(self, device_type = "HART", fields = (TABLE_NAME_FIELD, TABLE_PV_FIELD, TABLE_SV_FIELD, TABLE_TV_FIELD, TABLE_QV_FIELD, TABLE_LAST_UPDATE_FIELD)):
         # Go to the first page of devices
         self.get_first_page_buttons()[device_type].click()
 
@@ -387,7 +389,7 @@ class GwDeviceCounter():
                 elif (device_type == "ISA"):
                     css_row_index += (1 + self.get_displayed_device_indices()["HART"]["Length"] + 1) # ISA devices are offset by the number of HART devices and 2 header rows
 
-                for cell in (TABLE_NAME_FIELD, TABLE_PV_FIELD, TABLE_SV_FIELD, TABLE_TV_FIELD, TABLE_QV_FIELD, TABLE_LAST_UPDATE_FIELD):
+                for cell in fields:
                     try:
                         row_cell = self.driver.find_elements_by_class_name(cell)[css_row_index] # Get the correct cell for a given row
                         
@@ -405,17 +407,11 @@ class GwDeviceCounter():
                         row_dict[cell] = "" # If nothing is entered in the cell, an exception is raised, so handle the empty entry here
                 
                 return_table.append(row_dict) # Add the row converted to a dict to the returned list
-                print(row_num)
 
                 # Increment the row count and check if all rows were added
                 row_num += 1
             
             return return_table
-    
-
-    def test(self):
-        self.change_device_tab(LIVE_DEVICES_SPAN)
-        return self.convert_table_into_dicts()
 
 
     # Closes the web browser
