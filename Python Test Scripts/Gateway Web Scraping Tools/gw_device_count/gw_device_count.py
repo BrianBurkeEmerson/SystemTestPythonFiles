@@ -411,21 +411,6 @@ class GwDeviceCounter():
                 row_num += 1
             
             return return_table
-
-
-    def count_hart_device_types_test(self):
-        # Move to the live devices tab and reset to the first page
-        self.change_device_tab(LIVE_DEVICES_SPAN)
-        self.get_first_page_buttons()["HART"].click()
-
-        # Turn the table into a dictionary
-        a = self.driver.find_elements_by_class_name(TABLE_NAME_FIELD)[1].find_elements(By.XPATH, ".//div//*")[2].get_attribute("innerHTML")
-        a = self.driver.find_elements_by_class_name(TABLE_PV_FIELD)[1].find_elements(By.XPATH, ".//span//*")[1].get_attribute("innerHTML")
-        a = self.driver.find_elements_by_class_name(TABLE_SV_FIELD)[1].find_elements(By.XPATH, ".//span//*")[1].get_attribute("innerHTML")
-        a = self.driver.find_elements_by_class_name(TABLE_TV_FIELD)[1].find_elements(By.XPATH, ".//span//*")[1].get_attribute("innerHTML")
-        a = self.driver.find_elements_by_class_name(TABLE_QV_FIELD)[1].find_elements(By.XPATH, ".//span//*")[1].get_attribute("innerHTML")
-        a = self.driver.find_elements_by_class_name(TABLE_LAST_UPDATE_FIELD)[1].find_elements(By.XPATH, ".//span//*")[0].get_attribute("innerHTML")
-        return a
     
 
     def test(self):
