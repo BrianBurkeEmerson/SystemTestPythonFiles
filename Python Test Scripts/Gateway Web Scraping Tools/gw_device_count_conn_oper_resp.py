@@ -1,4 +1,4 @@
-# This example shows how to get information about live devices from the webpage table
+# This example shows how to get information about live HART devices from the webpage table
 # Then the data is processed to determine which devices are connected, operational, and responding
 
 from gw_device_count.gw_device_count import GwDeviceCounter

@@ -91,9 +91,7 @@ DELAY_AFTER_CLOSING_FACTORY_DIALOG = 3
 # factory_enabled: Whether or not factory accounts are enabled (program will wait to close the dialog box if they are)
 # old_login_fields: Old versions of the gateway firmware used different names for the login and password fields
 class GwDeviceCounter():
-    def __init__(self, \
-        hostname = "192.168.1.10", user = "admin", password = "default", \
-        supports_isa = False, factory_enabled = True, old_login_fields = False):
+    def __init__(self, hostname = "192.168.1.10", user = "admin", password = "default", supports_isa = False, factory_enabled = True, old_login_fields = False):
 
         # Store initialization variables
         self.login_url = "http://" + hostname + "/login"
