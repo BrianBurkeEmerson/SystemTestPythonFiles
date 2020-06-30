@@ -20,7 +20,7 @@ gmail_user = "mrUTeCFGjm@gmail.com"
 gmail_password = "uLf7xcSYYur2wc4"
 
 msg = EmailMessage()
-msg["Subject"] = "Automation Test Message"
+msg["Subject"] = "Automation: Rack Finished"
 msg["From"] = gmail_user
 msg["To"] = input("Enter the email to send status messages to: ")
 
@@ -30,6 +30,10 @@ context = ssl.create_default_context()
 # Define a list with the number of devices that will be connected after turning on each rack
 # For instance, if there are 20 devices on each rack, the list would be [20, 40, 60, ...]
 device_count_list = [24, 48]#, 72, 96, 120]
+
+# Write some blank lines to make separating tests easier
+with open(RESULTS_FILE, "a") as results:
+    results.write("\n\n\n\n\n")
 
 # Create the SSH and SCP connections
 gateway = IsaDeviceCounter(hostname = "systestdual", port = 22, username = "root", password = "emerson1")
@@ -41,7 +45,7 @@ for rack in range(len(device_count_list)):
 
     # Wait for the user to press enter before starting next rack (gives them a chance to power on next devices)
     input("Press enter after turning on the next rack")
-    print("Starting")
+    print("Starting rack " + str(rack))
 
     # Write a message indicating the start of a rack test
     with open(RESULTS_FILE, "a") as results:
@@ -73,7 +77,7 @@ for rack in range(len(device_count_list)):
     # Send an email notification that the rack is finished
     if msg["To"] != "":
         with smtplib.SMTP("smtp.gmail.com", port = 587) as smtp:
-            msg.set_content("Rack " + str(rack) + " finished at " + str(datetime.now()) + "\nPlease start next rack.")
+            msg.set_content("Rack " + str(rack) + " finished at " + str(datetime.now()) + ".\n\nPlease start next rack.")
             smtp.starttls(context = context)
             smtp.login(gmail_user, gmail_password)
             smtp.send_message(msg)
