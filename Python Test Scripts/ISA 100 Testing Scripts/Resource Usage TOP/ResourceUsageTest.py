@@ -29,7 +29,7 @@ context = ssl.create_default_context()
 
 # Define a list with the number of devices that will be connected after turning on each rack
 # For instance, if there are 20 devices on each rack, the list would be [20, 40, 60, ...]
-device_count_list = [24, 48]#, 72, 96, 120]
+device_count_list = [24, 47, 71, 95]
 
 # Write some blank lines to make separating tests easier
 with open(RESULTS_FILE, "a") as results:

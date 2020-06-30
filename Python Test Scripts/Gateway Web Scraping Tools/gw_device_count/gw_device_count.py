@@ -91,7 +91,7 @@ DELAY_AFTER_CLOSING_FACTORY_DIALOG = 3
 # factory_enabled: Whether or not factory accounts are enabled (program will wait to close the dialog box if they are)
 # old_login_fields: Old versions of the gateway firmware used different names for the login and password fields
 class GwDeviceCounter():
-    def __init__(self, hostname = "192.168.1.10", user = "admin", password = "default", supports_isa = False, factory_enabled = True, old_login_fields = False):
+    def __init__(self, hostname = "192.168.1.10", user = "admin", password = "default", supports_isa = False, factory_enabled = True, old_login_fields = False, open_devices = True):
 
         # Store initialization variables
         self.login_url = "http://" + hostname + "/login"
@@ -109,18 +109,12 @@ class GwDeviceCounter():
         # Create the driver that controls the browser
         self.driver = webdriver.Firefox(firefox_profile = profile)
 
-        # Open the gateway's login page and enter credentials
-        self.gateway_login()
-
-        # After logging in, close the factory accounts dialog if factory accounts are enabled
-        if factory_enabled:
-            self.retry_until_success(self.close_factory_account_dialog)
-
-        # Finally, open the device tab before giving control back to the user/application
-        self.retry_until_success(self.open_devices_tab)
-        self.wait_for_count_updates()
+        # Call the default open function which brings the browser to the devices page
+        if open_devices:
+            self.open()
 
 
+    # If the browser if closed and needs to be reopened, call the gateway_login() function
     def gateway_login(self):
         # Open the login page
         self.driver.get(self.login_url)
@@ -141,6 +135,19 @@ class GwDeviceCounter():
             password_element = self.driver.find_element_by_id(PASSWORD_FIELD)
         password_element.send_keys(self.password)
         password_element.send_keys(Keys.RETURN)
+    
+
+    def open(self):
+        # Open the gateway's login page and enter credentials
+        self.gateway_login()
+
+        # After logging in, close the factory accounts dialog if factory accounts are enabled
+        if self.factory_enabled:
+            self.retry_until_success(self.close_factory_account_dialog)
+
+        # Finally, open the device tab before giving control back to the user/application
+        self.retry_until_success(self.open_devices_tab)
+        self.wait_for_count_updates()
     
 
     # Continuously retries a function until it finishes with a short delay between attempts
