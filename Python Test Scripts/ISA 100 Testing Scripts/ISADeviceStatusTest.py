@@ -4,7 +4,7 @@
 from ISADeviceCount.ISADeviceCount import IsaDeviceCounter
 
 # Create the SSH and SCP connections
-gateway = IsaDeviceCounter(hostname = 'toc0', port = 22, username = 'root', password = 'emerson1')
+gateway = IsaDeviceCounter(hostname = 'systestdual', port = 22, username = 'root', password = 'emerson1')
 
 # Download the database from the gateway
 gateway.download_db_file("/var/tmp/Monitor_Host.db3")

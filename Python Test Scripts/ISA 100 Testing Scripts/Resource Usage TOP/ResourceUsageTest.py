@@ -1,25 +1,38 @@
 # py -m pip install paramiko
 # py -m pip install scp
-# py -m pip install win10toast
 
 import sys
 import os
 import time
 from datetime import datetime
+import smtplib, ssl
+from email.message import EmailMessage
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../ISADeviceCount")
 
 from ISADeviceCount import IsaDeviceCounter
-from win10toast import ToastNotifier
 
-DELAY_BETWEEN_LOOPS_SECONDS = 180
+DELAY_BETWEEN_LOOPS_SECONDS = 60
 RESULTS_FILE = "ResourceUsage.txt"
+
+##############################################################
+# Create the email information
+gmail_user = "mrUTeCFGjm@gmail.com"
+gmail_password = "uLf7xcSYYur2wc4"
+
+msg = EmailMessage()
+msg["Subject"] = "Automation Test Message"
+msg["From"] = gmail_user
+msg["To"] = input("Enter the email to send status messages to: ")
+
+context = ssl.create_default_context()
+##############################################################
 
 # Define a list with the number of devices that will be connected after turning on each rack
 # For instance, if there are 20 devices on each rack, the list would be [20, 40, 60, ...]
-device_count_list = [24, 48, 72, 96, 120]
+device_count_list = [24, 48]#, 72, 96, 120]
 
 # Create the SSH and SCP connections
-gateway = IsaDeviceCounter(hostname = 'toc0', port = 22, username = 'root', password = 'emerson1')
+gateway = IsaDeviceCounter(hostname = "systestdual", port = 22, username = "root", password = "emerson1")
 
 # Iterate and loop on each rack until all devices join
 # Then take a reading from the TOP command write it to a file
@@ -28,13 +41,14 @@ for rack in range(len(device_count_list)):
 
     # Wait for the user to press enter before starting next rack (gives them a chance to power on next devices)
     input("Press enter after turning on the next rack")
+    print("Starting")
 
     # Write a message indicating the start of a rack test
     with open(RESULTS_FILE, "a") as results:
         results.write("\nRack " + str(rack) + " started at " + str(datetime.now()) + "\n")
 
     while devices_found < device_count_list[rack]:
-        # Start with a delay of 3 minutes since it takes a significant amount of time for devices to join
+        # Start with a delay since it takes a significant amount of time for devices to join
         time.sleep(DELAY_BETWEEN_LOOPS_SECONDS)
 
         # Download the database from the gateway
@@ -56,10 +70,13 @@ for rack in range(len(device_count_list)):
         for line in stdout.readlines():
             results.write(line)
     
-    # TODO: Replace this with email or a different notification system
-    # Display a Windows 10 notification that the rack is finished
-    notification = ToastNotifier()
-    notification.show_toast("Rack " + str(rack) + " finished. Ready for next rack.")
+    # Send an email notification that the rack is finished
+    if msg["To"] != "":
+        with smtplib.SMTP("smtp.gmail.com", port = 587) as smtp:
+            msg.set_content("Rack " + str(rack) + " finished at " + str(datetime.now()) + "\nPlease start next rack.")
+            smtp.starttls(context = context)
+            smtp.login(gmail_user, gmail_password)
+            smtp.send_message(msg)
     
 # Close the connections
 gateway.close()
