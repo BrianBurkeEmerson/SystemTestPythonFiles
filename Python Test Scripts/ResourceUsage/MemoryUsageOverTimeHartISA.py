@@ -6,6 +6,7 @@
 
 # py -m pip install paramiko
 # py -m pip install scp
+# py -m pip install selenium
 
 import sys
 import os
@@ -20,9 +21,20 @@ from configparser import ConfigParser
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../ISA 100 Testing Scripts/ISADeviceCount")
 from ISADeviceCount import IsaDeviceCounter
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../Gateway Web Scraping Tools/gw_device_count")
+from gw_device_count import GwDeviceCounter
+
+
+
 CONFIG_FILE_NAME = "Options_MemoryUsageOverTime.ini"
 
 manipulating_data = False # Tracks whether the secondary thread is downloading/processing/recording data to prevent corruption
+
+# Initialize variables for counting the number of devices
+isa_devices = 0
+hart_devices = 0
+
+
 
 def verify_int_input_option(allowed_options = (1, 2), prompt = "Choose: ", error = "ERROR: Invalid input"):
     while True:
@@ -85,15 +97,39 @@ def remove_non_numbers(input_string = ""):
     return return_string
 
 
-def record_data(filename, gateway = None, measurement_interval = 10):
+def count_live_hart_devices(scraper):
+    global hart_devices
+
+    scraper.open()
+    hart_devices = scraper.get_live_devices_count()["HART"]
+    scraper.close()
+
+
+def record_data(filename, gateway, scraper, measurement_interval, track_hart, track_isa):
+    global manipulating_data
+    global isa_devices
+    global hart_devices
+
     manipulating_data = True # Indicate the thread is running and working on data
 
-    # Download the database from the gateway
-    gateway.download_db_file("/var/tmp/Monitor_Host.db3")
+    # If HART devices are being tracked, start the web scraper on a separate thread
+    scraperThread = None
+    if track_hart:
+        scraperThread = threading.Thread(target = count_live_hart_devices, args = (scraper,), name = "HartWebScraper")
+        scraperThread.start()
+    
+    # If ISA devices are being tracked, download the database and count ISA devices
+    if track_isa:
+        # Download the database from the gateway
+        gateway.download_db_file("/var/tmp/Monitor_Host.db3")
 
-    # Open the database and count the devices based on status
-    devices = gateway.get_isa_devices("Monitor_Host.db3")
-    devices_found = devices["Joined Configured"]
+        # Open the database and count the devices based on status
+        isa_devices_raw = gateway.get_isa_devices("Monitor_Host.db3")
+        isa_devices = isa_devices_raw["Joined Configured"]
+
+    # If HART devices are being tracked, wait until the web scraping thread has finished
+    if scraperThread != None:
+        scraperThread.join()
 
     # Get the current memory utilization and record only the first three lines
     _stdin, stdout, _stderr = gateway.clientSsh.exec_command("cat /proc/meminfo")
@@ -109,7 +145,7 @@ def record_data(filename, gateway = None, measurement_interval = 10):
         line_count += 1
     
     # Create the line written to the CSV file by adding on the date/time and number of ISA devices
-    csv_line = datetime.now().strftime("%x %X") + "," + str(devices_found) + memory_data + "\n"
+    csv_line = datetime.now().strftime("%x %X") + "," + str(hart_devices) + "," + str(isa_devices) + "," + str(hart_devices + isa_devices) + memory_data + "\n"
 
     # Write the data to the CSV file
     with open(filename, "a") as result_file:
@@ -119,7 +155,7 @@ def record_data(filename, gateway = None, measurement_interval = 10):
     manipulating_data = False
 
     # Start a new thread for the next scheduled data recording
-    recordingThread = threading.Timer(measurement_interval, record_data, args = (filename, gateway, measurement_interval))
+    recordingThread = threading.Timer(measurement_interval, record_data, args = (filename, gateway, scraper, measurement_interval, track_hart, track_isa))
     recordingThread.daemon = True
     recordingThread.name = "DataRecording"
     recordingThread.start()
@@ -142,10 +178,16 @@ def main():
             "Username" : "root",
             "Password" : "emerson1"
         }
+        config["WebBrowser"] = {
+            "WebUsername" : "admin",
+            "WebPassword" : "default"
+        }
         config["DataRecording"] = {
             "UseTimeLimit" : "no", # If set to no, user manually stops test
             "TimeLimit" : "600", # Time limit for test in seconds
-            "MeasurementInterval" : "60" # How long between measurements
+            "MeasurementInterval" : "60", # How long between measurements
+            "TrackHART" : "yes", # If set to yes, the program records the number of connected HART devices (adds extra time)
+            "TrackISA" : "yes" # If set to yes, the program records the number of connected ISA devices
         }
         config["Files"] = {
             "UseAutomaticFilename" : "no" # If set to yes, the filename is automatically generated based on when the test started
@@ -169,7 +211,12 @@ def main():
     time_limit = 0
     measurement_interval = 0
     filename = ""
-    
+    web_username = ""
+    web_password = ""
+    track_hart = True
+    track_isa = True
+
+    # Check whether to used the saved settings
     if options["UseSettingsFromConfigFile".lower()] == "yes":
         hostname = options["Hostname".lower()]
         username = options["Username".lower()]
@@ -177,11 +224,33 @@ def main():
         use_time_limit = options["UseTimeLimit".lower()] == "yes"
         time_limit = int(options["TimeLimit".lower()])
         measurement_interval = int(options["MeasurementInterval".lower()])
+        web_username = options["WebUsername".lower()]
+        web_password = options["WebPassword".lower()]
+        track_hart = options["TrackHART".lower()] != "no"
+        track_isa = options["TrackISA".lower()] != "no"
     else:
-        # Ask for the gateway hostname, username, and password
+        # Ask if the user wants to track HART, ISA, or both
+        print("1. Track HART devices only")
+        print("2. Track ISA devices only")
+        print("3. Track HART and ISA devices")
+        tracking = verify_int_input_option((1, 2, 3), "Select 1, 2, or 3: ")
+
+        # Convert tracking option to set booleans (note that they are both already set to True)
+        if tracking == 1:
+            track_isa = False
+        elif tracking == 2:
+            track_hart = False
+        
+        # Ask for the gateway SSH hostname, username, and password
         hostname = input("Enter the gateway hostname: ")
-        username = input("Enter the username: ")
-        password = getpass("Enter the password (no echo): ")
+        if track_isa:
+            username = input("Enter the SSH username: ")
+            password = getpass("Enter the SSH password (no echo): ")
+        
+        # Ask for the gateway webpage username and password
+        if track_hart:
+            web_username = input("Enter the webpage username: ")
+            web_password = getpass("Enter the webpage password (no echo): ")
 
         # Ask whether the user wants to use a time limit, a set number of measurements, or manually stop the test
         print("1. Set test time limit")
@@ -206,14 +275,17 @@ def main():
 
     # Write the header row for the recorded data
     with open(filename, "w") as result_file:
-        result_file.write("Date and Time,Number of Active ISA Devices,Total Memory (kB),Free Memory (kB),Available Memory (kB)\n")
+        result_file.write("Date and Time,Number of Active HART Devices,Number of Active ISA Devices,Total Active Devices,Total Memory (kB),Free Memory (kB),Available Memory (kB)\n")
     
     # Establish the SSH/SCP connections
     gateway = IsaDeviceCounter(hostname = hostname, username = username, password = password)
 
+    # Create the GwDeviceCounter object and connect to the gateway
+    scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = True, factory_enabled = True, open_devices = False)
+
     # Create a new thread for polling the database, getting memory usage stats, and writing results
     # Since the thread is a daemon, it will be automatically stopped once the user exits in the main thread
-    recordingThread = threading.Thread(target = record_data, name = "DataRecording", args = (filename, gateway, measurement_interval), daemon = True)
+    recordingThread = threading.Thread(target = record_data, name = "DataRecording", args = (filename, gateway, scraper, measurement_interval, track_hart, track_isa), daemon = True)
     recordingThread.start()
 
     print("Test Started")
@@ -227,6 +299,8 @@ def main():
             quit_input = input("Type \"quit\" to stop data logging: ").lower()
     
     # Wait until manipulating_data is False to safely quit
+    if manipulating_data:
+        print("Waiting for data recording operation to finish")
     while manipulating_data:
         continue
 

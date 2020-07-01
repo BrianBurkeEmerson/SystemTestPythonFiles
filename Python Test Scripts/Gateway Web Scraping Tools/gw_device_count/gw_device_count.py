@@ -102,13 +102,6 @@ class GwDeviceCounter():
         self.old_login_fields = old_login_fields
         self.current_devices_tab = ""
 
-        # Create a profile that allows invalid security certificates (gateways have self-signed certificates)
-        profile = webdriver.FirefoxProfile()
-        profile.accept_untrusted_certs = True
-
-        # Create the driver that controls the browser
-        self.driver = webdriver.Firefox(firefox_profile = profile)
-
         # Call the default open function which brings the browser to the devices page
         if open_devices:
             self.open()
@@ -138,6 +131,13 @@ class GwDeviceCounter():
     
 
     def open(self):
+        # Create a profile that allows invalid security certificates (gateways have self-signed certificates)
+        profile = webdriver.FirefoxProfile()
+        profile.accept_untrusted_certs = True
+
+        # Create the driver that controls the browser
+        self.driver = webdriver.Firefox(firefox_profile = profile)
+
         # Open the gateway's login page and enter credentials
         self.gateway_login()
 
