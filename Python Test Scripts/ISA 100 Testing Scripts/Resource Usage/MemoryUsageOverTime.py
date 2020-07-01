@@ -15,9 +15,12 @@ import tkinter as tk
 import tkinter.filedialog as fd
 from datetime import datetime
 from getpass import getpass
+from configparser import ConfigParser
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../ISADeviceCount")
 from ISADeviceCount import IsaDeviceCounter
+
+CONFIG_FILE_NAME = "Options_MemoryUsageOverTime.ini"
 
 manipulating_data = False # Tracks whether the secondary thread is downloading/processing/recording data to prevent corruption
 
@@ -123,29 +126,83 @@ def record_data(filename, gateway = None, measurement_interval = 10):
 
 
 def main():
-    # Ask for the gateway hostname, username, and password
-    hostname = input("Enter the gateway hostname: ")
-    username = input("Enter the username: ")
-    password = getpass("Enter the password (no echo): ")
+    # Create a dictionary for the various options
+    options = {}
 
-    # Ask whether the user wants to use a time limit, a set number of measurements, or manually stop the test
-    print("1. Set test time limit")
-    print("2. Stop test manually")
-    use_time_limit = verify_int_input_option((1, 2), "Select 1 or 2: ") == 1
+    # Create a parser that can handle INI files
+    config = ConfigParser()
 
-    # Ask the user for the time limit if they want to use it
-    time_limit = 0
-    if use_time_limit:
-        time_limit = verify_int_input_range(lower_bound = 60, use_upper_bound = False, prompt = "Enter how long (in seconds) the test should run for: ")
+    # If no config file exists, create a new default one
+    if not(os.path.isfile(CONFIG_FILE_NAME)):
+        config["General"] = {
+            "UseSettingsFromConfigFile" : "no" # Whether the settings stored in the config file should be used
+        }
+        config["Gateway"] = {
+            "Hostname" : "192.168.1.10",
+            "Username" : "root",
+            "Password" : "emerson1"
+        }
+        config["DataRecording"] = {
+            "UseTimeLimit" : "no", # If set to no, user manually stops test
+            "TimeLimit" : "600", # Time limit for test in seconds
+            "MeasurementInterval" : "60" # How long between measurements
+        }
+        config["Files"] = {
+            "UseAutomaticFilename" : "no" # If set to yes, the filename is automatically generated based on when the test started
+        }
+
+        # Write the config file
+        with open(CONFIG_FILE_NAME, "w") as config_file:
+            config.write(config_file)
     
-    # Ask the user for the time between measurements
-    measurement_interval = verify_int_input_range(lower_bound = 10, use_upper_bound = False, prompt = "Enter how long (in seconds) between measurements: ")
+    # Read the options from the config file
+    config.read(CONFIG_FILE_NAME)
+    for section in config.sections():
+        for item in config.items(section):
+            options[item[0]] = item[1]
+    
+    # Create the variables used for configuring the test
+    hostname = ""
+    username = ""
+    password = ""
+    use_time_limit = False
+    time_limit = 0
+    measurement_interval = 0
+    filename = ""
+    
+    if options["UseSettingsFromConfigFile".lower()] == "yes":
+        hostname = options["Hostname".lower()]
+        username = options["Username".lower()]
+        password = options["Password".lower()]
+        use_time_limit = options["UseTimeLimit".lower()] == "yes"
+        time_limit = int(options["TimeLimit".lower()])
+        measurement_interval = int(options["MeasurementInterval".lower()])
+    else:
+        # Ask for the gateway hostname, username, and password
+        hostname = input("Enter the gateway hostname: ")
+        username = input("Enter the username: ")
+        password = getpass("Enter the password (no echo): ")
+
+        # Ask whether the user wants to use a time limit, a set number of measurements, or manually stop the test
+        print("1. Set test time limit")
+        print("2. Stop test manually")
+        use_time_limit = verify_int_input_option((1, 2), "Select 1 or 2: ") == 1
+
+        # Ask the user for the time limit if they want to use it
+        if use_time_limit:
+            time_limit = verify_int_input_range(lower_bound = 60, use_upper_bound = False, prompt = "Enter how long (in seconds) the test should run for: ")
+        
+        # Ask the user for the time between measurements
+        measurement_interval = verify_int_input_range(lower_bound = 10, use_upper_bound = False, prompt = "Enter how long (in seconds) between measurements: ")
 
     # Ask the user where results should be saved
-    print("Choose a filename and location in the pop-up window")
-    root = tk.Tk()
-    filename = fd.asksaveasfilename(confirmoverwrite = True, defaultextension = ".csv", title = "Enter a Name for the Data File", filetypes = (("CSV Files", ".csv"), ("All Files","*")))
-    root.destroy()
+    if (options["UseSettingsFromConfigFile".lower()] == "no") or (options["UseAutomaticFilename".lower()] == "no"):
+        print("Choose a filename and location in the pop-up window")
+        root = tk.Tk()
+        filename = fd.asksaveasfilename(confirmoverwrite = True, defaultextension = ".csv", title = "Enter a Name for the Data File", filetypes = (("CSV Files", ".csv"), ("All Files","*")))
+        root.destroy()
+    else:
+        filename = datetime.now().strftime("%a %d %B %Y - %I-%M-%S %p Memory Usage.csv")
 
     # Write the header row for the recorded data
     with open(filename, "w") as result_file:
