@@ -7,6 +7,7 @@
 # py -m pip install paramiko
 # py -m pip install scp
 # py -m pip install selenium
+# py -m pip install matplotlib
 
 import sys
 import os
@@ -17,6 +18,7 @@ import tkinter.filedialog as fd
 from datetime import datetime
 from getpass import getpass
 from configparser import ConfigParser
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../ISA 100 Testing Scripts/ISADeviceCount")
 from ISADeviceCount import IsaDeviceCounter
