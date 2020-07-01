@@ -1,3 +1,6 @@
+# This test waits for all ISA devices on a given rack to join, then takes a single reading of resource utilization
+# After taking a reading, the next rack must be turned on and ENTER is pressed to continue the test
+
 # py -m pip install paramiko
 # py -m pip install scp
 
