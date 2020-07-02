@@ -7,7 +7,6 @@
 # py -m pip install paramiko
 # py -m pip install scp
 # py -m pip install selenium
-# py -m pip install matplotlib
 
 import sys
 import os
@@ -18,13 +17,14 @@ import tkinter.filedialog as fd
 from datetime import datetime
 from getpass import getpass
 from configparser import ConfigParser
-import matplotlib.pyplot as plt
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../ISA 100 Testing Scripts/ISADeviceCount")
 from ISADeviceCount import IsaDeviceCounter
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../Gateway Web Scraping Tools/gw_device_count")
 from gw_device_count import GwDeviceCounter
+
+from MemoryUsagePlotting import plot_csv_memory_file
 
 
 
@@ -277,7 +277,7 @@ def main():
 
     # Write the header row for the recorded data
     with open(filename, "w") as result_file:
-        result_file.write("Date and Time,Number of Active HART Devices,Number of Active ISA Devices,Total Active Devices,Total Memory (kB),Free Memory (kB),Available Memory (kB)\n")
+        result_file.write("Date and Time,HART Devices,ISA Devices,All Devices,Total Mem (kB),Free Mem (kB),Avail Mem (kB)\n")
     
     # Establish the SSH/SCP connections
     gateway = IsaDeviceCounter(hostname = hostname, username = username, password = password)
@@ -305,6 +305,18 @@ def main():
         print("Waiting for data recording operation to finish")
     while manipulating_data:
         continue
+    
+    # Create a plot of the data after determine which devices to plot
+    device_type_list = []
+    if track_hart:
+        device_type_list.append(1)
+    if track_isa:
+        device_type_list.append(2)
+    if track_hart and track_isa:
+        device_type_list.append(3)
+
+    plot_csv_memory_file(filename, range(4, 7), device_type_list, range(1, 7), \
+        axis_1_label = "Memory (kB)", axis_2_label = "Number of Devices", x_label = "Time", show_plot = False)
 
     # Close the SSH/SCP connection
     gateway.close()
