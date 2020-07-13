@@ -45,7 +45,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 import time
-import copy
+#import copy
+from datetime import datetime
 
 # The following constants are used for identifying HTML/CSS elements
 LOGIN_FIELD = "inputEmail"
@@ -101,10 +102,18 @@ class GwDeviceCounter():
         self.factory_enabled = factory_enabled
         self.old_login_fields = old_login_fields
         self.current_devices_tab = ""
+        self.open_time = datetime.min
 
         # Call the default open function which brings the browser to the devices page
         if open_devices:
             self.open()
+    
+
+    # Returns whether the browser has been open for longer than a given number of minutes
+    # minutes: The number of minutes to check against (returns True if lifetime is greater than minutes)
+    def check_browser_lifetime(self, minutes):
+        delta = datetime.now() - self.open_time
+        return divmod(delta.seconds, 60)[0] > minutes
 
 
     # If the browser if closed and needs to be reopened, call the gateway_login() function
@@ -137,6 +146,9 @@ class GwDeviceCounter():
 
         # Create the driver that controls the browser
         self.driver = webdriver.Firefox(firefox_profile = profile)
+
+        # Record the datetime that the browser was opened
+        self.open_time = datetime.now()
 
         # Open the gateway's login page and enter credentials
         self.gateway_login()
@@ -188,7 +200,8 @@ class GwDeviceCounter():
     
 
     # Changes the devices tab between All/Live/Unreachable/Low Battery
-    def change_device_tab(self, tab = ALL_DEVICES_SPAN):
+    # wait_for_updates: Whether the browser should wait for Javascript updates after changing tabs
+    def change_device_tab(self, tab = ALL_DEVICES_SPAN, wait_for_updates = True):
         # Manipulate the cursor to change tabs since the device tabs are not WebElements
         tab_to_set = self.driver.find_element_by_id(tab)
         cursor = ActionChains(self.driver).move_to_element(tab_to_set).click(tab_to_set)
@@ -205,7 +218,8 @@ class GwDeviceCounter():
             self.current_devices_tab = "Low Battery"
 
         # Sleep after changing tabs to let the counts update
-        self.wait_for_count_updates()
+        if wait_for_updates:
+            self.wait_for_count_updates()
 
 
     # After retrieving the correct elements from the webpage, parse the strings and return integers
@@ -299,6 +313,12 @@ class GwDeviceCounter():
     def get_live_devices_count(self):
         self.change_device_tab(tab = LIVE_DEVICES_SPAN)
         return self.get_counts()
+    
+
+    # Alternative way to get the number of live devices without needing to change tabs/wait for updates
+    # However, this does not return separate counts for HART and ISA devices
+    def get_live_devices_count_alt(self):
+        return int(self.driver.find_element_by_id(LIVE_DEVICES_SPAN).get_attribute("innerHTML"))
     
 
     # Reports the total number of unreachable devices

@@ -23,6 +23,7 @@ from ISADeviceCount import IsaDeviceCounter
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../Gateway Web Scraping Tools/gw_device_count")
 from gw_device_count import GwDeviceCounter
+import gw_device_count as gdc
 
 from MemoryUsagePlotting import plot_csv_memory_file
 
@@ -102,9 +103,23 @@ def remove_non_numbers(input_string = ""):
 def count_live_hart_devices(scraper):
     global hart_devices
 
-    scraper.open()
+    # If the browser has been open for 30 minutes, open a new instance
+    if scraper.check_browser_lifetime(30):
+        # First close the old browser
+        # Use a try-except to ignore the error when initially no browser is present
+        try:
+            scraper.close()
+        except:
+            pass
+        
+        # Open a new browser
+        scraper.open()
+    
+    # If a new browser isn't being opened, the tab needs to be switched to force a refresh on the device counts
+    else:
+        scraper.change_device_tab(gdc.ALL_DEVICES_SPAN, False)
+
     hart_devices = scraper.get_live_devices_count()["HART"]
-    scraper.close()
 
 
 def record_data(filename, gateway, scraper, measurement_interval, track_hart, track_isa):
@@ -305,6 +320,8 @@ def main():
         print("Waiting for data recording operation to finish")
     while manipulating_data:
         continue
+
+    scraper.close()
     
     # Create a plot of the data after determine which devices to plot
     device_type_list = []
