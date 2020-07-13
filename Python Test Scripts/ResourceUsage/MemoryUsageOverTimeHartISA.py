@@ -141,8 +141,8 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
         gateway.download_db_file("/var/tmp/Monitor_Host.db3")
 
         # Open the database and count the devices based on status
-        isa_devices_raw = gateway.get_isa_devices("Monitor_Host.db3")
-        isa_devices = isa_devices_raw["Joined Configured"]
+        isa_devices_all = gateway.get_isa_devices("Monitor_Host.db3")
+        isa_devices = isa_devices_all["Joined Configured"]
 
     # If HART devices are being tracked, wait until the web scraping thread has finished
     if scraperThread != None:
