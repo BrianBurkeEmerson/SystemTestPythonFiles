@@ -1,8 +1,8 @@
 # This example shows how to get information about live HART devices from the webpage table
 # Then the data is processed to determine which devices are connected, operational, and responding
 
-from gw_device_count.gw_device_count import GwDeviceCounter
-import gw_device_count.gw_device_count as gdc
+from GwDeviceCount.GwDeviceCount import GwDeviceCounter
+import GwDeviceCount.GwDeviceCount as gdc
 import time
 
 # Create the GwDeviceCounter object and connect to the gateway

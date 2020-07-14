@@ -1,4 +1,4 @@
-from gw_device_count.gw_device_count import GwDeviceCounter
+from GwDeviceCount.GwDeviceCount import GwDeviceCounter
 
 # Create the GwDeviceCounter object and connect to the gateway
 gateway = GwDeviceCounter( \

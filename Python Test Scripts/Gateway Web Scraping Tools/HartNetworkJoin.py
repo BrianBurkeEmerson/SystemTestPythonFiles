@@ -1,5 +1,5 @@
-from gw_device_count.gw_device_count import GwDeviceCounter
-import gw_device_count.gw_device_count as gdc
+from GwDeviceCount.GwDeviceCount import GwDeviceCounter
+import GwDeviceCount.GwDeviceCount as gdc
 import time
 import threading
 from datetime import datetime

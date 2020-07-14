@@ -21,9 +21,9 @@ from configparser import ConfigParser
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../ISA 100 Testing Scripts/ISADeviceCount")
 from ISADeviceCount import IsaDeviceCounter
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../Gateway Web Scraping Tools/gw_device_count")
-from gw_device_count import GwDeviceCounter
-import gw_device_count as gdc
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../Gateway Web Scraping Tools/GwDeviceCount")
+from GwDeviceCount import GwDeviceCounter
+import GwDeviceCount as gdc
 
 from MemoryUsagePlotting import plot_csv_memory_file
 
