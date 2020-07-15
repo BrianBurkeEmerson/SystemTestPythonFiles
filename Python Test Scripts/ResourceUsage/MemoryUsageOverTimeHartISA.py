@@ -338,6 +338,8 @@ def main():
     # Close the SSH/SCP connection
     gateway.close()
 
+    print("Program Finished")
+
 
 if __name__ == "__main__":
     main()
