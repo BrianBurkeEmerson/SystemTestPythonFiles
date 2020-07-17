@@ -89,6 +89,6 @@ def plot_csv_memory_file(filename, col_y_axis_1 = (), col_y_axis_2 = (), \
         plt.show()
     
     # Save the plot
-    png_filename = os.path.splitext(filename)[0] + ".png"
+    png_filename = os.path.splitext(filename)[0] + ".pdf"
     fig.savefig(png_filename)
     

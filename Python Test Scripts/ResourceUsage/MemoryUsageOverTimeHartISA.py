@@ -168,6 +168,8 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
     with open(filename, "a") as result_file:
         result_file.write(csv_line)
     
+    print("Wrote \"" + csv_line[0:-1] + "\" at " + datetime.now().strftime("%x %X"))
+    
     # Indicate that the thread is finished working on data
     manipulating_data = False
 
@@ -260,14 +262,28 @@ def main():
         
         # Ask for the gateway SSH hostname, username, and password
         hostname = input("Enter the gateway hostname: ")
-        if track_isa:
-            username = input("Enter the SSH username: ")
-            password = getpass("Enter the SSH password (no echo): ")
+        # if track_isa:
+        #     username = input("Enter the SSH username (leave blank to use default): ")
+        #     password = getpass("Enter the SSH password (no echo) (leave blank to use default): ")
+        username = input("Enter the SSH username (leave blank to use default): ")
+        password = getpass("Enter the SSH password (no echo) (leave blank to use default): ")
         
+        # Set the username and password to defaults if they are left blank
+        if username == "":
+            username = "root"
+        if password == "":
+            password = "emerson1"
+
         # Ask for the gateway webpage username and password
         if track_hart:
-            web_username = input("Enter the webpage username: ")
-            web_password = getpass("Enter the webpage password (no echo): ")
+            web_username = input("Enter the webpage username (leave blank to use default): ")
+            web_password = getpass("Enter the webpage password (no echo) (leave blank to use default): ")
+            
+            # Set the web username and password to defaults if they are left blank
+            if web_username == "":
+                web_username = "admin"
+            if web_password == "":
+                web_password = "default"
 
         # Ask whether the user wants to use a time limit, a set number of measurements, or manually stop the test
         print("1. Set test time limit")
