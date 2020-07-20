@@ -314,7 +314,9 @@ def main():
     gateway = IsaDeviceCounter(hostname = hostname, username = username, password = password)
 
     # Create the GwDeviceCounter object and connect to the gateway
-    scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = True, factory_enabled = True, open_devices = False)
+    scraper = None
+    if track_hart:
+        scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = True, factory_enabled = True, open_devices = False)
 
     # Create a new thread for polling the database, getting memory usage stats, and writing results
     # Since the thread is a daemon, it will be automatically stopped once the user exits in the main thread
@@ -337,7 +339,8 @@ def main():
     while manipulating_data:
         continue
 
-    scraper.close()
+    if scraper is not None:
+        scraper.close()
     
     # Create a plot of the data after determine which devices to plot
     device_type_list = []
@@ -348,8 +351,12 @@ def main():
     if track_hart and track_isa:
         device_type_list.append(3)
 
+    print("Generating plots...")
+
     plot_csv_memory_file(filename, range(4, 7), device_type_list, range(1, 7), \
         axis_1_label = "Memory (kB)", axis_2_label = "Number of Devices", x_label = "Time", show_plot = False)
+
+    print("Plots generated")
 
     # Close the SSH/SCP connection
     gateway.close()
