@@ -305,10 +305,6 @@ def main():
         root.destroy()
     else:
         filename = datetime.now().strftime("%a %d %B %Y - %I-%M-%S %p Memory Usage.csv")
-
-    # Write the header row for the recorded data
-    with open(filename, "w") as result_file:
-        result_file.write("Date and Time,HART Devices,ISA Devices,All Devices,Total Mem (kB),Free Mem (kB),Avail Mem (kB)\n")
     
     # Establish the SSH/SCP connections
     gateway = IsaDeviceCounter(hostname = hostname, username = username, password = password)
@@ -317,6 +313,10 @@ def main():
     scraper = None
     if track_hart:
         scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = True, factory_enabled = True, open_devices = False)
+    
+    # Write the header row for the recorded data
+    with open(filename, "w") as result_file:
+        result_file.write("Date and Time,HART Devices,ISA Devices,All Devices,Total Mem (kB),Free Mem (kB),Avail Mem (kB)\n")
 
     # Create a new thread for polling the database, getting memory usage stats, and writing results
     # Since the thread is a daemon, it will be automatically stopped once the user exits in the main thread

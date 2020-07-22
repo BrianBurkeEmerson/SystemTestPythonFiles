@@ -25,6 +25,11 @@
 import paramiko
 import scp
 import sqlite3
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../SSHHelper")
+from SSHHelper import SSHHelper
 
 # Relate the statuses found in the database to what they mean
 DEVICE_STATUS_IDS = {
@@ -45,12 +50,8 @@ DEVICE_STATUS_IDS = {
 class IsaDeviceCounter():
     def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1"):
 
-        # Create the paramiko SSH client
-        self.clientSsh = paramiko.SSHClient()
-        self.clientSsh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # Establish the SSH connection
-        self.clientSsh.connect(hostname = hostname, port = port, username = username, password = password)
+        # Create the paramiko SSH client by using the helper class
+        self.clientSsh = SSHHelper(hostname = hostname, port = port, username = username, password = password)
 
         # Create the SCP connection for downloading files and use the SSH transport from paramiko
         self.clientScp = scp.SCPClient(self.clientSsh.get_transport())
