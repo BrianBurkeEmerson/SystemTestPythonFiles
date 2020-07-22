@@ -116,7 +116,7 @@ class GwDeviceCounter():
         return divmod(delta.seconds, 60)[0] > minutes
 
 
-    # If the browser if closed and needs to be reopened, call the gateway_login() function
+    # Logs into the gateway's web interface
     def gateway_login(self):
         # Open the login page
         self.driver.get(self.login_url)
@@ -138,7 +138,8 @@ class GwDeviceCounter():
         password_element.send_keys(self.password)
         password_element.send_keys(Keys.RETURN)
     
-
+    
+    # If the browser if closed and needs to be reopened, call the open() function
     def open(self):
         # Create a profile that allows invalid security certificates (gateways have self-signed certificates)
         profile = webdriver.FirefoxProfile()
@@ -158,7 +159,7 @@ class GwDeviceCounter():
             self.retry_until_success(self.close_factory_account_dialog)
 
         # Finally, open the device tab before giving control back to the user/application
-        self.retry_until_success(self.open_devices_tab)
+        self.retry_until_success(self.open_devices_page)
         self.wait_for_count_updates()
     
 
@@ -192,8 +193,8 @@ class GwDeviceCounter():
         time.sleep(DELAY_AFTER_CLOSING_FACTORY_DIALOG)
     
 
-    # Changes from the Home to Devices tab
-    def open_devices_tab(self):
+    # Changes from the Home to Devices page
+    def open_devices_page(self):
         devices_menu = self.driver.find_element_by_id(DEVICES_BUTTON)
         devices_menu.click()
         self.current_devices_tab = "All"
@@ -220,6 +221,22 @@ class GwDeviceCounter():
         # Sleep after changing tabs to let the counts update
         if wait_for_updates:
             self.wait_for_count_updates()
+    
+
+    def change_device_tab_all(self, wait_for_updates = True):
+        self.change_device_tab(ALL_DEVICES_SPAN, wait_for_updates)
+
+
+    def change_device_tab_live(self, wait_for_updates = True):
+        self.change_device_tab(LIVE_DEVICES_SPAN, wait_for_updates)
+    
+
+    def change_device_tab_unreachable(self, wait_for_updates = True):
+        self.change_device_tab(UNREACHABLE_DEVICES_SPAN, wait_for_updates)
+    
+
+    def change_device_tab_low_battery(self, wait_for_updates = True):
+        self.change_device_tab(LOW_BATTERY_SPAN, wait_for_updates)
 
 
     # After retrieving the correct elements from the webpage, parse the strings and return integers
@@ -280,7 +297,7 @@ class GwDeviceCounter():
 
             expected_count = int(self.driver.find_element_by_id(tab_span_definition).get_attribute("innerHTML"))
 
-            if current_count == expected_count:
+            if current_count >= expected_count:
                 not_equal = False
             else:
                 time.sleep(REPEAT_ACTION_DELAY)

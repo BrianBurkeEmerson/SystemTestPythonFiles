@@ -43,7 +43,7 @@ DEVICE_STATUS_IDS = {
 }
 
 class IsaDeviceCounter():
-    def __init__(self, hostname = '192.168.1.10', port = 22, username = 'root', password = 'emerson1'):
+    def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1"):
 
         # Create the paramiko SSH client
         self.clientSsh = paramiko.SSHClient()
