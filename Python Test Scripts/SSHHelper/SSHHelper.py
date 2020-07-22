@@ -1,4 +1,5 @@
 import paramiko
+import concurrent.futures
 
 class SSHHelper(paramiko.SSHClient):
     def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1"):
@@ -44,3 +45,10 @@ class SSHHelper(paramiko.SSHClient):
             return self.get_memory_usage_by_pid(pid)
         except:
             return "0"
+    
+
+    def get_memory_usage_by_multi_name(self, processes = ("",)):
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(self.get_memory_usage_by_name, process) for process in processes]
+        
+        return [f.result() for f in futures]
