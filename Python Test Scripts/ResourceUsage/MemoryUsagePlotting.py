@@ -13,12 +13,12 @@ from matplotlib.dates import date2num
 data = []
 
 # filename: The location of the CSV file to be plotted
-# col_axis_1: The indices of the columns to be plotted on the left y-axis specified as a tuple [Ex. (1, 2, 4)]
-# col_axis_2: The indices of the columns to be plotted on the right y-axis specified as a tuple [Ex. (0, 3, 5)]
+# col_axis_1: The indices of the columns to be plotted on the 1st plot specified as a tuple [Ex. (1, 2, 4)]
+# col_axis_2: The indices of the columns to be plotted on the 2nd plot specified as a tuple [Ex. (0, 3, 5)]
 # int_col: The indices of columns that contain integer data specified as a tuple
 # first_row_labels: Boolean indicating whether the first row of data are column labels
-# axis_1_label: Label for left side axis
-# axis_2_label: Label for right side axis
+# axis_1_label: Label for 1st plot y-axis
+# axis_2_label: Label for 2nd plot y-axis
 # x_label: Label for x-axis
 def plot_csv_memory_file(filename, col_y_axis_1 = (), col_y_axis_2 = (), \
     int_col = (), first_row_labels = True, axis_1_label = "", axis_2_label = "", x_label = "", show_plot = False):

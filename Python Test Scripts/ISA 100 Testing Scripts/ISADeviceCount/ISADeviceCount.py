@@ -100,6 +100,20 @@ class IsaDeviceCounter():
         return device_dict
     
 
+    # Goes through the ISA database and calculates the reliability of each device
+    # db_name: The filename of the database to be read
+    def get_device_reliability(self, db_name = "Monitor_Host.db3"):
+        conn = sqlite3.connect(db_name)
+        c = conn.cursor()
+
+        return_dict = {}
+
+        for row in c.execute("SELECT * FROM NetworkHealthDevices ORDER BY DeviceID"):
+            return_dict[row[0]] = 100 - row[5]
+        
+        return return_dict
+    
+
     def close(self):
         self.clientScp.close()
         self.clientSsh.close()

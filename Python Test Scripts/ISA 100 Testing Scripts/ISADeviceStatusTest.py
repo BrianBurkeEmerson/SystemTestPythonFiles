@@ -14,5 +14,11 @@ devices = gateway.get_isa_devices("Monitor_Host.db3")
 for entry in devices:
     print(str(entry) + ": " + str(devices[entry]))
 
+# Calculate the reliability of each device and print to the console
+reliabilities = gateway.get_device_reliability("Monitor_Host.db3")
+for device in reliabilities:
+    if reliabilities[device] != 100:
+        print(str(device) + ": " + str(reliabilities[device]) + "%")
+
 # Close the connections
 gateway.close()
