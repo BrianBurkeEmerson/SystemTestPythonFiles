@@ -33,7 +33,7 @@ password = "emerson1"
 
 gateway = IsaDeviceCounter(hostname = hostname, username = username, password = password)
 
-filename = "test.csv"
+filename = "memory_usage.csv"
 processes = ["dcc", "hartserver", "java", "stunnel", "xmlrpcd", "fimmgrd", "syslog-ng"]
 
 # Write the header row for the recorded data
