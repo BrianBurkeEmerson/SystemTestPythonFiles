@@ -1,5 +1,6 @@
 import paramiko
 import concurrent.futures
+import re
 
 class SSHHelper(paramiko.SSHClient):
     def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1"):
@@ -39,6 +40,28 @@ class SSHHelper(paramiko.SSHClient):
             stdout_list.append(line)
         
         return stdout_list
+    
+
+    # Calls the TOP command and parses the output to determine which processes are using the most memory
+    # num_of_processes: How many processes to return
+    def get_top_memory_usage_processes(self, num_of_processes = 1):
+        return_list = []
+        i = 0
+
+        # Send a TOP command, and filter out only the lines containing "root" (lines with processes)
+        # Sort by % memory usage
+        for line in self.send_command("top -n 1 -o %MEM -i -b | grep root"):
+            if i < num_of_processes:
+                # Get the 11th column (starting from 0) to get the process name after splitting with regex
+                return_list.append(re.split("\s{1,}", line.strip())[11])
+                i += 1
+        
+        # If the number of recorded processes has not reached what was requested, pad out the list with empty strings
+        while i < num_of_processes:
+            return_list.append("")
+            i += 1
+        
+        return return_list
 
 
     # Returns the memory usage in kB of a process given its process ID

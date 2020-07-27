@@ -4,7 +4,7 @@ from tkinter import filedialog as fd
 
 from MemoryUsagePlotting import plot_csv_memory_file
 
-locale.setlocale(locale.LC_ALL, "")
+locale.setlocale(locale.LC_ALL, "C")
 
 root = tk.Tk()
 filename = fd.askopenfilename(title = "Select CSV file to plot", filetypes = (("CSV Files","*.csv"), ("All Files","*.*")))
