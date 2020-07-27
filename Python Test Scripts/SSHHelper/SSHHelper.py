@@ -94,40 +94,43 @@ class SSHHelper(paramiko.SSHClient):
     # The list will be returned in the order that processes are registered, so using a constant tuple or list is recommended when registering
     # This makes this method of checking memory usage drop-in compatible with the other methods
     def check_processes(self):
-        dict_access = []
+        if self.processes != []:
+            dict_access = []
 
-        # Construct the command that will be sent via SSH to get the process memory usages
-        sh_cmd = "sudo pmap "
-        for process in self.processes:
-            pid_index = 0
+            # Construct the command that will be sent via SSH to get the process memory usages
+            sh_cmd = "sudo pmap "
+            for process in self.processes:
+                pid_index = 0
 
-            for pid in self.processes[process]["pid_list"]:
-                sh_cmd += (str(pid) + " ")
-                dict_access.append([process, pid_index])
-                pid_index += 1
-        
-        # Filter all information other than total memory used by each process
-        sh_cmd += "| grep total | awk '/[0-9]K/{print$2}'"
+                for pid in self.processes[process]["pid_list"]:
+                    sh_cmd += (str(pid) + " ")
+                    dict_access.append([process, pid_index])
+                    pid_index += 1
+            
+            # Filter all information other than total memory used by each process
+            sh_cmd += "| grep total | awk '/[0-9]K/{print$2}'"
 
-        # Send the command and capture the response
-        usages = self.send_command(sh_cmd)
+            # Send the command and capture the response
+            usages = self.send_command(sh_cmd)
 
-        # Process the response and store the memory usage of each PID in an organized dictionary
-        for usage in range(len(usages)):
-            #self.processes["process_name"]["pid_list/memory_usages/total_memory"]["optional index if using pid_list/memory_usages"]
-            self.processes[dict_access[usage][0]]["memory_usages"][dict_access[usage][1]] = int(self.remove_non_numbers(usages[usage]))
-        
-        # Return the memory usages as a simple list to be drop-in compatible with the other methods of checking memory usage
-        return_list = []
+            # Process the response and store the memory usage of each PID in an organized dictionary
+            for usage in range(len(usages)):
+                #self.processes["process_name"]["pid_list/memory_usages/total_memory"]["optional index if using pid_list/memory_usages"]
+                self.processes[dict_access[usage][0]]["memory_usages"][dict_access[usage][1]] = int(self.remove_non_numbers(usages[usage]))
+            
+            # Return the memory usages as a simple list to be drop-in compatible with the other methods of checking memory usage
+            return_list = []
 
-        # Calculate the total memory for each process (some processes have 2+ PIDs)
-        for process in self.processes:
-            self.processes[process]["total_memory"] = 0
+            # Calculate the total memory for each process (some processes have 2+ PIDs)
+            for process in self.processes:
+                self.processes[process]["total_memory"] = 0
 
-            for usage in self.processes[process]["memory_usages"]:
-                self.processes[process]["total_memory"] += usage
+                for usage in self.processes[process]["memory_usages"]:
+                    self.processes[process]["total_memory"] += usage
 
-            return_list.append(self.processes[process]["total_memory"])
-        
-        return return_list
-        
+                return_list.append(self.processes[process]["total_memory"])
+            
+            return return_list
+
+        else:
+            return []

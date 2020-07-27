@@ -36,6 +36,8 @@ manipulating_data = False # Tracks whether the secondary thread is downloading/p
 # Initialize variables for counting the number of devices
 isa_devices = 0
 hart_devices = 0
+cpu_usage = 0
+memory_usages = []
 
 
 
@@ -100,6 +102,25 @@ def remove_non_numbers(input_string = ""):
     return return_string
 
 
+def get_cpu_usage(ssh_helper):
+    global cpu_usage
+
+    # Send a TOP command that returns only the first line to extract CPU usage information
+    stdout = ssh_helper.send_command("top -n1 -b | grep average:")
+
+    # Parse the return data to get the first CPU usage (average usage over 1 minute (next 2 are 5 minutes and 15 minutes))
+    marker_string = "load average: "
+    start_index = stdout[0].find(marker_string) + len(marker_string)
+    end_index = stdout[0].find(",", start_index)
+    cpu_usage = float(stdout[0][start_index:end_index]) * 100.0
+
+
+def get_process_memory_usage(ssh_helper):
+    global memory_usages
+
+    memory_usages = ssh_helper.check_processes()
+
+
 def count_live_hart_devices(scraper):
     global hart_devices
 
@@ -126,6 +147,8 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
     global manipulating_data
     global isa_devices
     global hart_devices
+    global memory_usages
+    global cpu_usage
 
     manipulating_data = True # Indicate the thread is running and working on data
 
@@ -135,6 +158,15 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
         scraperThread = threading.Thread(target = count_live_hart_devices, args = (scraper,), name = "HartWebScraper")
         scraperThread.start()
     
+    # Check the CPU usage
+    cpuUsageThread = threading.Thread(target = get_cpu_usage, args = (gateway.clientSsh,), name = "CpuUsageCheck")
+    cpuUsageThread.start()
+
+    # If any processes are being tracked, start a new thread to get the data here
+    memory_usages = []
+    memoryUsageThread = threading.Thread(target = get_process_memory_usage, args = (gateway.clientSsh,), name = "ProcessMemoryUsageCheck")
+    memoryUsageThread.start()
+
     # If ISA devices are being tracked, download the database and count ISA devices
     if track_isa:
         # Download the database from the gateway
@@ -147,6 +179,10 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
     # If HART devices are being tracked, wait until the web scraping thread has finished
     if scraperThread != None:
         scraperThread.join()
+    
+    # Wait for any other threads to finish before continuing
+    memoryUsageThread.join()
+    cpuUsageThread.join()
 
     # Get the current memory utilization and record only the first three lines
     _stdin, stdout, _stderr = gateway.clientSsh.exec_command("cat /proc/meminfo")
@@ -162,7 +198,10 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
         line_count += 1
     
     # Create the line written to the CSV file by adding on the date/time and number of ISA devices
-    csv_line = datetime.now().strftime("%x %X") + "," + str(hart_devices) + "," + str(isa_devices) + "," + str(hart_devices + isa_devices) + memory_data + "\n"
+    csv_line = datetime.now().strftime("%x %X") + "," + str(hart_devices) + "," + str(isa_devices) + "," + str(hart_devices + isa_devices) + memory_data + "," + str(cpu_usage)
+    for usage in memory_usages:
+        csv_line += ("," + str(usage))
+    csv_line += "\n"
 
     # Write the data to the CSV file
     with open(filename, "a") as result_file:
@@ -206,7 +245,8 @@ def main():
             "TimeLimit" : "600", # Time limit for test in seconds
             "MeasurementInterval" : "60", # How long between measurements
             "TrackHART" : "yes", # If set to yes, the program records the number of connected HART devices (adds extra time)
-            "TrackISA" : "yes" # If set to yes, the program records the number of connected ISA devices
+            "TrackISA" : "yes", # If set to yes, the program records the number of connected ISA devices
+            "ProcessesToTrack" : "" # The list of processes whose memory usage should be tracked (separated by a comma with on spaces)
         }
         config["Files"] = {
             "UseAutomaticFilename" : "no" # If set to yes, the filename is automatically generated based on when the test started
@@ -234,6 +274,7 @@ def main():
     web_password = ""
     track_hart = True
     track_isa = True
+    processes_to_track = []
 
     # Check whether to used the saved settings
     if options["UseSettingsFromConfigFile".lower()] == "yes":
@@ -247,6 +288,9 @@ def main():
         web_password = options["WebPassword".lower()]
         track_hart = options["TrackHART".lower()] != "no"
         track_isa = options["TrackISA".lower()] != "no"
+
+        # Parse the list of processes that should be tracked
+        processes_to_track = options["ProcessesToTrack".lower()].split(',')
     else:
         # Ask if the user wants to track HART, ISA, or both
         print("1. Track HART devices only")
@@ -297,6 +341,10 @@ def main():
         # Ask the user for the time between measurements
         measurement_interval = verify_int_input_range(lower_bound = 10, use_upper_bound = False, prompt = "Enter how long (in seconds) between measurements: ")
 
+        # Ask the user if they want to track the memory usage of any processes
+        print("Enter a comma separated list (no spaces) of processes whose memory usage should be tracked")
+        processes_to_track = input("Leave the line empty to track no processes: ")
+
     # Ask the user where results should be saved
     if (options["UseSettingsFromConfigFile".lower()] == "no") or (options["UseAutomaticFilename".lower()] == "no"):
         print("Choose a filename and location in the pop-up window")
@@ -304,7 +352,7 @@ def main():
         filename = fd.asksaveasfilename(confirmoverwrite = True, defaultextension = ".csv", title = "Enter a Name for the Data File", filetypes = (("CSV Files", ".csv"), ("All Files","*")))
         root.destroy()
     else:
-        filename = datetime.now().strftime("%a %d %B %Y - %I-%M-%S %p Memory Usage.csv")
+        filename = datetime.now().strftime(str(hostname) + " - %a %d %B %Y - %I-%M-%S %p Memory Usage.csv")
     
     # Establish the SSH/SCP connections
     gateway = IsaDeviceCounter(hostname = hostname, username = username, password = password)
@@ -314,9 +362,19 @@ def main():
     if track_hart:
         scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = True, factory_enabled = True, open_devices = False)
     
+    # Register the processes to track with the gateway
+    gateway.clientSsh.register_processes(processes_to_track)
+    
     # Write the header row for the recorded data
     with open(filename, "w") as result_file:
-        result_file.write("Date and Time,HART Devices,ISA Devices,All Devices,Total Mem (kB),Free Mem (kB),Avail Mem (kB)\n")
+        header_line = "Date and Time,HART Devices,ISA Devices,All Devices,Total Mem (kB),Free Mem (kB),Avail Mem (kB),CPU Usage (%)"
+
+        for process in gateway.clientSsh.processes:
+            header_line += ("," + process)
+        
+        header_line += "\n"
+
+        result_file.write(header_line)
 
     # Create a new thread for polling the database, getting memory usage stats, and writing results
     # Since the thread is a daemon, it will be automatically stopped once the user exits in the main thread
