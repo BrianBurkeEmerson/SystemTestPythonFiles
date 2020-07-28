@@ -157,3 +157,37 @@ class SSHHelper(paramiko.SSHClient):
 
         else:
             return []
+    
+
+    def dump_process_pmap_info(self):
+        if self.processes != []:
+            # Construct the command that will be sent via SSH to get the pmap dump
+            sh_cmd = "sudo pmap"
+
+            for process in self.processes:
+                for pid in self.processes[process]["pid_list"]:
+                    sh_cmd += (" " + str(pid))
+
+            # Get the logs from the gateway
+            logs_list = self.send_command(sh_cmd)
+            logs = ""
+            for line in logs_list:
+                logs += line
+
+            # Create a dictionary with empty string values to store each process's information
+            return_dict = {}
+            for process in self.processes:
+                return_dict[process] = ""
+
+            # Split the log by process and return a dictionary of the strings for each process's information
+            for process in self.processes:
+                for pid in self.processes[process]["pid_list"]:
+                    start_index = logs.find(str(pid) + ":")
+                    pre_end_index = logs.find("total", start_index)
+                    end_index = logs.find("\n", pre_end_index)
+                    return_dict[process] += (logs[start_index:end_index] + "\n")
+            
+            return return_dict
+        
+        else:
+            return {}

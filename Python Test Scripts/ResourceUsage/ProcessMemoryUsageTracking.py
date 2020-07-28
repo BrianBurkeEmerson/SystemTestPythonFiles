@@ -35,7 +35,7 @@ gateway = IsaDeviceCounter(hostname = hostname, username = username, password = 
 
 filename = "memory_usage.csv"
 processes = ["dcc", "hartserver", "java", "stunnel", "xmlrpcd", "fimmgrd",\
-    "syslog-ng", "SystemManager", "isa_gw", "MonitorHost", "mbserver", "apdriver", "scgi_svc", "led_reset_monitor"]
+    "syslog-ng", "SystemManager", "isa_gw", "MonitorHost", "mbserver", "apdriver", "scgi_svc", "led_reset_monit"]
 
 # Write the header row for the recorded data
 with open(filename, "w") as result_file:
