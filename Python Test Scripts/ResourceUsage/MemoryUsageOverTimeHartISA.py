@@ -4,9 +4,10 @@
 
 # Execution can be set to run for a certain amount of time or it can be set to be manually stopped by typing "quit"
 
-# py -m pip install paramiko
-# py -m pip install scp
-# py -m pip install selenium
+# pip install paramiko
+# pip install scp
+# pip install selenium
+# pip install matplotlib
 
 import sys
 import os
