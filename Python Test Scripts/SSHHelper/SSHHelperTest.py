@@ -9,7 +9,7 @@ def get_memory_usage(client, process):
 ssh = SSHHelper("toc0")
 
 processes = ["dcc", "hartserver", "java", "stunnel", "xmlrpcd", "fimmgrd",\
-    "syslog-ng", "SystemManager", "isa_gw", "MonitorHost", "mbserver", "apdriver", "scgi_svc", "led_reset_monitor"]
+    "syslog-ng", "SystemManager", "isa_gw", "MonitorHost", "mbserver", "apdriver", "scgi_svc", "led_reset_monit"]
 
 # Get memory usage of multiple processes one at a time
 #for process in processes:
@@ -25,6 +25,5 @@ processes = ["dcc", "hartserver", "java", "stunnel", "xmlrpcd", "fimmgrd",\
 # Register processes and use the built-in function to check the memory usage of those all at once
 ssh.register_processes(processes)
 print(ssh.check_processes())
-
 
 ssh.close()

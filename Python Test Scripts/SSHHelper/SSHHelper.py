@@ -50,10 +50,11 @@ class SSHHelper(paramiko.SSHClient):
 
         # Send a TOP command, and filter out only the lines containing "root" (lines with processes)
         # Sort by % memory usage
-        for line in self.send_command("top -n 1 -o %MEM -i -b | grep root"):
+        for line in self.send_command("top -n 1 -o %MEM -b | grep root"):
             if i < num_of_processes:
                 # Get the 11th column (starting from 0) to get the process name after splitting with regex
-                return_list.append(re.split("\s{1,}", line.strip())[11])
+                # Get the 9th column to get the memory usage percentage
+                return_list.append((re.split("\s{1,}", line.strip())[11], re.split("\s{1,}", line.strip())[9]))
                 i += 1
         
         # If the number of recorded processes has not reached what was requested, pad out the list with empty strings

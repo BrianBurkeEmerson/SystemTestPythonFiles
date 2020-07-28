@@ -106,6 +106,29 @@ def remove_non_numbers(input_string = ""):
     return return_string
 
 
+def save_top_10_memory_usage_processes(ssh_helper):
+    global folder
+
+    # Get the top 10 processes using the most memory
+    processes = ssh_helper.get_top_memory_usage_processes(10)
+    file_location = folder + "/" + "most_memory_usage_processes.log"
+
+    # Create the string written to the log
+    log_string = ""
+    for process in range(len(processes)):
+        log_string += (str(process + 1) + ": " + str(processes[process][0]) + " - " + str(processes[process][1]) + "%\n")
+        
+    log_string += "\n\n\n\n"
+
+    # Write the string to the log
+    write_mode = "a"
+    if not(os.path.exists(file_location)):
+        write_mode = "w"
+    
+    with open(file_location, write_mode) as f:
+        f.write(log_string)
+
+
 def save_process_logs(ssh_helper):
     global folder
     write_mode = "a"
@@ -117,6 +140,8 @@ def save_process_logs(ssh_helper):
         log_location = folder + "/" + process + ".log"
         if not(os.path.exists(log_location)):
             write_mode = "w"
+        else:
+            write_mode = "a"
         
         with open(log_location, write_mode) as f:
             f.write(logs[process] + "\n\n\n\n\n")
@@ -191,6 +216,10 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
     pmapDumpThread = threading.Thread(target = save_process_logs, args = (gateway.clientSsh,), name = "PmapLogDump")
     pmapDumpThread.start()
 
+    # Get the processes using the most memory
+    mostMemoryProcessesThread = threading.Thread(target = save_top_10_memory_usage_processes, args = (gateway.clientSsh,), name = "MostMemoryProcesses")
+    mostMemoryProcessesThread.start()
+
     # If ISA devices are being tracked, download the database and count ISA devices
     if track_isa:
         # Download the database from the gateway
@@ -231,8 +260,9 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
     with open(filename, "a") as result_file:
         result_file.write(csv_line)
     
-    # Wait for the log dumping file to finish
+    # Wait for the log dumping threads to finish
     pmapDumpThread.join()
+    mostMemoryProcessesThread.join()
     
     print("Wrote \"" + csv_line[0:-1] + "\" at " + datetime.now().strftime("%x %X"))
     
