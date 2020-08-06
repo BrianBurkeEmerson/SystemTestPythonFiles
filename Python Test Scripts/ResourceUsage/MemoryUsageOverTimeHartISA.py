@@ -110,7 +110,7 @@ def save_top_10_memory_usage_processes(ssh_helper):
     global folder
 
     # Get the top 10 processes using the most memory
-    processes = ssh_helper.get_top_memory_usage_processes(10)
+    processes = ssh_helper.get_top_memory_usage_processes(10, True)
     file_location = folder + "/" + "most_memory_usage_processes.log"
 
     # Create the string written to the log
@@ -425,7 +425,7 @@ def main():
     # Create the GwDeviceCounter object and connect to the gateway
     scraper = None
     if track_hart:
-        scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = True, factory_enabled = True, open_devices = False)
+        scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = track_isa, factory_enabled = True, open_devices = False)
     
     # Register the processes to track with the gateway
     gateway.clientSsh.register_processes(processes_to_track)

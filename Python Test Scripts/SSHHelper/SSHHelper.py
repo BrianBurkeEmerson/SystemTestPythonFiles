@@ -44,18 +44,31 @@ class SSHHelper(paramiko.SSHClient):
 
     # Calls the TOP command and parses the output to determine which processes are using the most memory
     # num_of_processes: How many processes to return
-    def get_top_memory_usage_processes(self, num_of_processes = 1):
+    def get_top_memory_usage_processes(self, num_of_processes = 1, use_alt = False):
         return_list = []
         i = 0
 
         # Send a TOP command, and filter out only the lines containing "root" (lines with processes)
         # Sort by % memory usage
-        for line in self.send_command("top -n 1 -o %MEM -b | grep root"):
-            if i < num_of_processes:
-                # Get the 11th column (starting from 0) to get the process name after splitting with regex
-                # Get the 9th column to get the memory usage percentage
-                return_list.append((re.split("\s{1,}", line.strip())[11], re.split("\s{1,}", line.strip())[9]))
-                i += 1
+        if use_alt:
+            for line in self.send_command("ps aux --sort -rss | grep root"):
+                if i < num_of_processes:
+                    columns = re.split("\s{1,}", line.strip())
+                    # Get the process name by combining all columns at index 10 and after
+                    process_name = ""
+                    for j in range(10, len(columns)):
+                        process_name += str(columns[j])
+                    
+                    # Add the process name and the percent memory usage (index 3)
+                    return_list.append((process_name, columns[3]))
+                    i += 1
+        else:
+            for line in self.send_command("top -n 1 -o %MEM -b | grep root"):
+                if i < num_of_processes:
+                    # Get the 11th column (starting from 0) to get the process name after splitting with regex
+                    # Get the 9th column to get the memory usage percentage
+                    return_list.append((re.split("\s{1,}", line.strip())[11], re.split("\s{1,}", line.strip())[9]))
+                    i += 1
         
         # If the number of recorded processes has not reached what was requested, pad out the list with empty strings
         while i < num_of_processes:
