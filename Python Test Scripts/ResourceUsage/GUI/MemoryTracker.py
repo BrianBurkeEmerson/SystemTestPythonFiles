@@ -5,6 +5,7 @@ import threading
 import tkinter as tk
 import tkinter.simpledialog as sd
 import tkinter.filedialog as fd
+from tkinter import ttk
 from datetime import datetime
 from configparser import ConfigParser
 
@@ -79,7 +80,6 @@ class EntryWithRemoveButton(tk.Frame):
         super().__init__(master)
 
         self.parent = parent
-        #self.parent.children[label_text] = self
 
         self.button = tk.Button(self, text = "Delete", command = self.unregister)
         self.button.grid(row = 0, column = 0)
@@ -90,7 +90,7 @@ class EntryWithRemoveButton(tk.Frame):
     
 
     def unregister(self):
-        del self.parent.children[self.label_text]
+        del self.parent.children_processes[self.label_text]
         self.parent.layout_children()
         self.destroy()
 
@@ -100,7 +100,7 @@ class ProcessEntryWindow(tk.LabelFrame):
         super().__init__(master, text = "Processes to Monitor")
 
         # The children attribute contains EntryWithRemoveButton's for each process to track
-        self.children = {}
+        self.children_processes = {}
         self.children_order = []
 
         self.add_button = tk.Button(self, text = "Add Process", command = self.add_process)
@@ -116,8 +116,8 @@ class ProcessEntryWindow(tk.LabelFrame):
 
 
     def _add_process_code(self, process_name):
-        if process_name not in self.children:
-            self.children[process_name] = EntryWithRemoveButton(self, self, label_text = process_name)
+        if process_name not in self.children_processes:
+            self.children_processes[process_name] = EntryWithRemoveButton(self, self, label_text = process_name)
             self.children_order.append(process_name)
             self.layout_children()
 
@@ -125,12 +125,12 @@ class ProcessEntryWindow(tk.LabelFrame):
     def layout_children(self):
         # Determine whether any children need to be removed from the children_order list
         for i in range(len(self.children_order) - 1, -1, -1):
-            if self.children_order[i] not in self.children:
+            if self.children_order[i] not in self.children_processes:
                 self.children_order.pop(i)
 
         # Reapply layouts for all children now that the list is cleaned up
         for i in range(len(self.children_order)):
-            self.children[self.children_order[i]].grid(row = i, column = 2, sticky = tk.W)
+            self.children_processes[self.children_order[i]].grid(row = i, column = 2, sticky = tk.W)
 
 
 class MemoryTrackerGui(tk.Frame):
@@ -156,7 +156,7 @@ class MemoryTrackerGui(tk.Frame):
         self.web_password_entry.grid(row = 3, column = 1)
 
 
-        self.use_time_limit_check = tk.Checkbutton(master, text = "Use time limit for test")
+        self.use_time_limit_check = ttk.Checkbutton(master, text = "Use time limit for test")
         self.use_time_limit_check.grid(row = 1, column = 0)
 
         self.time_limit_entry = LabeledEntry(master, frame_text = "Test time limit/duration")
@@ -166,10 +166,10 @@ class MemoryTrackerGui(tk.Frame):
         self.measurement_period_entry.grid(row = 3, column = 0)
 
 
-        self.track_hart_check = tk.Checkbutton(master, text = "Track HART device count")
+        self.track_hart_check = ttk.Checkbutton(master, text = "Track HART device count")
         self.track_hart_check.grid(row = 0, column = 2)
 
-        self.track_isa_check = tk.Checkbutton(master, text = "Track ISA100 device count")
+        self.track_isa_check = ttk.Checkbutton(master, text = "Track ISA100 device count")
         self.track_isa_check.grid(row = 1, column = 2)
 
 
@@ -261,20 +261,48 @@ class MemoryTrackerGui(tk.Frame):
         self.measurement_period_entry.entry.insert(0, options["MeasurementInterval".lower()])
 
         if options["UseTimeLimit".lower()] == "yes":
-            self.use_time_limit_check.select()
+            #self.use_time_limit_check.select()
+            self.use_time_limit_check.state(["selected", "!alternate"])
+        else:
+            self.use_time_limit_check.state(["!selected", "!alternate"])
         
         if options["TrackHART".lower()] != "no":
-            self.track_hart_check.select()
+            #self.track_hart_check.select()
+            self.track_hart_check.state(["selected", "!alternate"])
+        else:
+            self.track_hart_check.state(["!selected", "!alternate"])
         
         if options["TrackISA".lower()] != "no":
-            self.track_isa_check.select()
+            #self.track_isa_check.select()
+            self.track_isa_check.state(["selected", "!alternate"])
+        else:
+            self.track_isa_check.state(["!selected", "!alternate"])
 
         for process in options["ProcessesToTrack".lower()].split(','):
             self.process_entry_frame._add_process_code(process)
 
     
+    # Changes internal variables for how the test is run (taken from GUI elements)
+    def set_test_options(self):
+        self.hostname = self.hostname_entry.entry.get()
+        self.ssh_username = self.ssh_username_entry.entry.get()
+        self.ssh_password = self.ssh_password_entry.entry.get()
+        self.use_time_limit = self.use_time_limit_check.instate(["selected"])
+        self.time_limit = int(self.time_limit_entry.entry.get())
+        self.measurement_period = int(self.measurement_period_entry.entry.get())
+        self.web_username = self.web_username_entry.entry.get()
+        self.web_password = self.web_password_entry.entry.get()
+        self.track_hart = self.track_hart_check.instate(["selected"])
+        self.track_isa = self.track_isa_check.instate(["selected"])
+        self.filename = self.save_file_selector.entry.get()
+
+        self.processes_tracked = []
+        for process in self.process_entry_frame.children_processes:
+            self.processes_tracked.append(process)
+
+    
     def start_test(self):
-        pass
+        self.set_test_options()
 
 
 def main():
