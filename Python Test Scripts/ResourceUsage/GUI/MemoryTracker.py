@@ -12,6 +12,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/..")
 
 ENTRY_WIDGET_WIDTH = 50
 DEFAULT_COLOR = "#F0F0F0"
+CONFIG_FILE_NAME = "Options_MemoryUsageOverTime.ini"
 
 
 class FileSelector(tk.LabelFrame):
@@ -111,7 +112,10 @@ class ProcessEntryWindow(tk.LabelFrame):
 
     def add_process(self):
         process_name = sd.askstring("Process Name", "Enter the name of the process to track")
+        self._add_process_code(process_name)
 
+
+    def _add_process_code(self, process_name):
         if process_name not in self.children:
             self.children[process_name] = EntryWithRemoveButton(self, self, label_text = process_name)
             self.children_order.append(process_name)
@@ -174,8 +178,103 @@ class MemoryTrackerGui(tk.Frame):
         self.save_file_selector.grid(row = 2, column = 2)
 
 
+        self.start_button = tk.Button(master, text = "     Start     ", command = self.start_test)
+        self.start_button.grid(row = 3, column = 2)
+
+
         self.process_entry_frame = ProcessEntryWindow(master)
         self.process_entry_frame.grid(row = 4, column = 0, columnspan = 3)
+
+
+        # Read the INI config file settings into the GUI elements
+        self.read_config_file()
+
+        # Generate an output filename as a default based on the time and date
+        self.save_file_selector.entry.delete(0, tk.END)
+        filename = datetime.now().strftime(self.hostname_entry.entry.get() + " - %a %d %B %Y - %I-%M-%S %p Memory Usage.csv")
+        self.save_file_selector.entry.insert(0, filename)
+
+
+    def read_config_file(self):
+        # Create a dictionary for the various options
+        options = {}
+
+        # Create a parser that can handle INI files
+        config = ConfigParser()
+
+        # If no config file exists, create a new default one
+        if not(os.path.isfile(CONFIG_FILE_NAME)):
+            config["General"] = {
+                "UseSettingsFromConfigFile" : "yes" # Whether the settings stored in the config file should be used
+            }
+            config["Gateway"] = {
+                "Hostname" : "192.168.1.10",
+                "Username" : "root",
+                "Password" : "emerson1"
+            }
+            config["WebBrowser"] = {
+                "WebUsername" : "admin",
+                "WebPassword" : "default"
+            }
+            config["DataRecording"] = {
+                "UseTimeLimit" : "no", # If set to no, user manually stops test
+                "TimeLimit" : "600", # Time limit for test in seconds
+                "MeasurementInterval" : "60", # How long between measurements
+                "TrackHART" : "yes", # If set to yes, the program records the number of connected HART devices (adds extra time)
+                "TrackISA" : "yes", # If set to yes, the program records the number of connected ISA devices
+                "ProcessesToTrack" : "" # The list of processes whose memory usage should be tracked (separated by a comma with on spaces)
+            }
+            config["Files"] = {
+                "UseAutomaticFilename" : "no" # If set to yes, the filename is automatically generated based on when the test started
+            }
+
+            # Write the config file
+            with open(CONFIG_FILE_NAME, "w") as config_file:
+                config.write(config_file)
+        
+        # Read the options from the config file
+        config.read(CONFIG_FILE_NAME)
+        for section in config.sections():
+            for item in config.items(section):
+                options[item[0]] = item[1]
+
+        # Fill in the GUI elements according to the INI file
+        self.hostname_entry.entry.delete(0, tk.END)
+        self.hostname_entry.entry.insert(0, options["Hostname".lower()])
+
+        self.ssh_username_entry.entry.delete(0, tk.END)
+        self.ssh_username_entry.entry.insert(0, options["Username".lower()])
+
+        self.ssh_password_entry.entry.delete(0, tk.END)
+        self.ssh_password_entry.entry.insert(0, options["Password".lower()])
+
+        self.web_username_entry.entry.delete(0, tk.END)
+        self.web_username_entry.entry.insert(0, options["WebUsername".lower()])
+
+        self.web_password_entry.entry.delete(0, tk.END)
+        self.web_password_entry.entry.insert(0, options["WebPassword".lower()])
+
+        self.time_limit_entry.entry.delete(0, tk.END)
+        self.time_limit_entry.entry.insert(0, options["TimeLimit".lower()])
+
+        self.measurement_period_entry.entry.delete(0, tk.END)
+        self.measurement_period_entry.entry.insert(0, options["MeasurementInterval".lower()])
+
+        if options["UseTimeLimit".lower()] == "yes":
+            self.use_time_limit_check.select()
+        
+        if options["TrackHART".lower()] != "no":
+            self.track_hart_check.select()
+        
+        if options["TrackISA".lower()] != "no":
+            self.track_isa_check.select()
+
+        for process in options["ProcessesToTrack".lower()].split(','):
+            self.process_entry_frame._add_process_code(process)
+
+    
+    def start_test(self):
+        pass
 
 
 def main():
