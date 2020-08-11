@@ -99,7 +99,7 @@ class ProcessEntryWindow(tk.LabelFrame):
     def __init__(self, master):
         super().__init__(master, text = "Processes to Monitor")
 
-        # The children attribute contains EntryWithRemoveButton's for each process to track
+        # The children_processes attribute contains EntryWithRemoveButton's for each process to track
         self.children_processes = {}
         self.children_order = []
 
@@ -112,7 +112,8 @@ class ProcessEntryWindow(tk.LabelFrame):
 
     def add_process(self):
         process_name = sd.askstring("Process Name", "Enter the name of the process to track")
-        self._add_process_code(process_name)
+        if process_name != None:
+            self._add_process_code(process_name)
 
 
     def _add_process_code(self, process_name):
