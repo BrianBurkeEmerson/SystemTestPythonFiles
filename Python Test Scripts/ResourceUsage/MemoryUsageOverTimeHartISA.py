@@ -186,6 +186,30 @@ def save_process_logs(ssh_helper):
         
         with open(log_location, write_mode) as f:
             f.write(logs[process] + "\n\n\n\n\n")
+    
+    # Dump top logs
+    logs = ssh_helper.send_command("top -n1 -b")
+    log_location = folder + "/top.log"
+    if not(os.path.exists(log_location)):
+        write_mode = "w"
+    else:
+        write_mode = "a"
+    with open(log_location, write_mode) as f:
+        for line in logs:
+            f.write(line)
+        f.write("\n\n\n\n\n")
+    
+    # Dump process logs
+    logs = ssh_helper.send_command("ps -o pid,user,%mem,command ax | sort -b -k3 -r")
+    log_location = folder + "/ps.log"
+    if not(os.path.exists(log_location)):
+        write_mode = "w"
+    else:
+        write_mode = "a"
+    with open(log_location, write_mode) as f:
+        for line in logs:
+            f.write(line)
+        f.write("\n\n\n\n\n")
 
 
 def get_cpu_usage(ssh_helper):
