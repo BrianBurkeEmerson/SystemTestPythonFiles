@@ -110,7 +110,7 @@ def save_top_10_memory_usage_processes(ssh_helper):
     global folder
 
     # Get the top 10 processes using the most memory
-    processes = ssh_helper.get_top_memory_usage_processes(10, True)
+    processes = ssh_helper.get_top_memory_usage_processes(10, False)
     file_location = folder + "/" + "most_memory_usage_processes.log"
 
     # Create the string written to the log
