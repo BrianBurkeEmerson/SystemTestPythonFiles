@@ -27,5 +27,7 @@ ssh.register_processes(processes)
 print(ssh.check_processes())
 
 # print(ssh.dump_process_maps_info())
+# print(ssh.dump_process_pmap_info())
+# print(ssh.dump_process_smaps_info())
 
 ssh.close()

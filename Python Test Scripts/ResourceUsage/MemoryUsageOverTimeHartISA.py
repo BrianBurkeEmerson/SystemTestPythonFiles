@@ -133,11 +133,52 @@ def save_process_logs(ssh_helper):
     global folder
     write_mode = "a"
 
+    # pmap
     logs = ssh_helper.dump_process_pmap_info()
-    
     for process in logs:
+        sub_folder = folder + "/" + process
+
+        if not(os.path.isdir(sub_folder)):
+            os.mkdir(sub_folder)
+
         # Determine whether a new file needs to be written or to continue appending to an old one
-        log_location = folder + "/" + process + ".log"
+        log_location = sub_folder + "/" + process + "_pmap.log"
+        if not(os.path.exists(log_location)):
+            write_mode = "w"
+        else:
+            write_mode = "a"
+        
+        with open(log_location, write_mode) as f:
+            f.write(logs[process] + "\n\n\n\n\n")
+    
+    # maps
+    logs = ssh_helper.dump_process_maps_info()
+    for process in logs:
+        sub_folder = folder + "/" + process
+
+        if not(os.path.isdir(sub_folder)):
+            os.mkdir(sub_folder)
+
+        # Determine whether a new file needs to be written or to continue appending to an old one
+        log_location = sub_folder + "/" + process + "_maps.log"
+        if not(os.path.exists(log_location)):
+            write_mode = "w"
+        else:
+            write_mode = "a"
+        
+        with open(log_location, write_mode) as f:
+            f.write(logs[process] + "\n\n\n\n\n")
+    
+    # smaps
+    logs = ssh_helper.dump_process_smaps_info()
+    for process in logs:
+        sub_folder = folder + "/" + process
+
+        if not(os.path.isdir(sub_folder)):
+            os.mkdir(sub_folder)
+
+        # Determine whether a new file needs to be written or to continue appending to an old one
+        log_location = sub_folder + "/" + process + "_smaps.log"
         if not(os.path.exists(log_location)):
             write_mode = "w"
         else:
@@ -425,7 +466,7 @@ def main():
     # Create the GwDeviceCounter object and connect to the gateway
     scraper = None
     if track_hart:
-        scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = track_isa, factory_enabled = True, open_devices = False)
+        scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = True, factory_enabled = True, open_devices = False)
     
     # Register the processes to track with the gateway
     gateway.clientSsh.register_processes(processes_to_track)

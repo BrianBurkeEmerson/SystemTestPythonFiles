@@ -219,10 +219,12 @@ class SSHHelper(paramiko.SSHClient):
 
 
     def exec_maps_cmds(self, process, cmds):
-        return_dict = {process : []}
+        return_dict = {process : ""}
 
         for cmd in cmds:
-            return_dict[process].extend(self.send_command(cmd))
+            for line in self.send_command(cmd):
+                return_dict[process] += line
+            #return_dict[process].extend(self.send_command(cmd))
         
         return return_dict
 
