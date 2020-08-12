@@ -295,7 +295,11 @@ class GwDeviceCounter():
             current_counts_dict = self.get_counts()
             current_count = current_counts_dict["HART"] + current_counts_dict["ISA"]
 
-            expected_count = int(self.driver.find_element_by_id(tab_span_definition).get_attribute("innerHTML"))
+            expected_count = 0
+            try:
+                expected_count = int(self.driver.find_element_by_id(tab_span_definition).get_attribute("innerHTML"))
+            except:
+                pass
 
             if current_count >= expected_count:
                 not_equal = False
