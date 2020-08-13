@@ -1,6 +1,11 @@
 import paramiko
 import concurrent.futures
 import re
+import time
+
+RETRY_COUNT = 10
+DELAY_BETWEEN_RETRIES = 0.5
+PASS_SIZE = 3 # The number of commands that can be executed at once (in a single pass)
 
 class SSHHelper(paramiko.SSHClient):
     def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1"):
@@ -32,7 +37,13 @@ class SSHHelper(paramiko.SSHClient):
     # cmd: The command to be sent via SSH
     def send_command(self, cmd = ""):
         # Send the command and capture the output
-        _stdin, stdout, _stderr = self.exec_command(cmd)
+        stdout = []
+        for _ in range(RETRY_COUNT):
+            try:
+                _stdin, stdout, _stderr = self.exec_command(cmd)
+                break
+            except:
+                time.sleep(DELAY_BETWEEN_RETRIES)
         
         # Put each line of the output into a list
         stdout_list = []
@@ -205,3 +216,63 @@ class SSHHelper(paramiko.SSHClient):
         
         else:
             return {}
+
+
+    def exec_maps_cmds(self, process, cmds):
+        return_dict = {process : ""}
+
+        for cmd in cmds:
+            for line in self.send_command(cmd):
+                return_dict[process] += line
+            #return_dict[process].extend(self.send_command(cmd))
+        
+        return return_dict
+
+
+    def dump_process_maps_info(self, smaps = False):
+        return_dict = {}
+
+        smaps_char = ""
+        if smaps:
+            smaps_char = "s"
+
+        # Construct a list of commands to send for each process when getting the memory dumps
+        cmds = {}
+        procs = []
+        for process in self.processes:
+            cmds[process] = []
+            procs.append(process)
+
+            for pid in self.processes[process]["pid_list"]:
+                cmds[process].append("cat /proc/" + str(pid) + "/" + smaps_char + "maps")
+
+        # Break the dump into multiple transmissions (sending too many SSH commands at once creates an error)
+        continue_sending = True
+        start_i = 0
+        end_i = 0
+        while continue_sending:
+            # Determine how many commands to execute without overflowing past the number of processes
+            end_i += PASS_SIZE
+            if end_i >= len(procs):
+                end_i = len(procs)
+                continue_sending = False
+
+            # Create an dictionary subset for commands to execute from the larger cmds dictionary
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                cmds_in_pass = {}
+                for i in range(start_i, end_i):
+                    cmds_in_pass[procs[i]] = cmds[procs[i]]
+
+                futures = [executor.submit(self.exec_maps_cmds, process, cmds[process]) for process in cmds_in_pass]
+
+            # Add the results to the returned dictionary
+            for f in futures:
+                return_dict.update(f.result())
+            
+            start_i += PASS_SIZE
+
+        return return_dict
+
+
+    def dump_process_smaps_info(self):
+        return self.dump_process_maps_info(smaps = True)
