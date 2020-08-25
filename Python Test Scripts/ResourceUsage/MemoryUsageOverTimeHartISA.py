@@ -13,11 +13,7 @@ import sys
 import os
 import time
 import threading
-import tkinter as tk
-import tkinter.filedialog as fd
 from datetime import datetime
-from getpass import getpass
-from configparser import ConfigParser
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../ISA 100 Testing Scripts/ISADeviceCount")
 from ISADeviceCount import IsaDeviceCounter
@@ -30,9 +26,9 @@ from MemoryUsagePlotting import plot_csv_memory_file
 
 
 
-CONFIG_FILE_NAME = "Options_MemoryUsageOverTime.ini"
 
 manipulating_data = False # Tracks whether the secondary thread is downloading/processing/recording data to prevent corruption
+legacy_gateway = False
 
 # Track the folder where all files are stored
 folder = ""
@@ -108,9 +104,10 @@ def remove_non_numbers(input_string = ""):
 
 def save_top_10_memory_usage_processes(ssh_helper):
     global folder
+    global legacy_gateway
 
     # Get the top 10 processes using the most memory
-    processes = ssh_helper.get_top_memory_usage_processes(10, False)
+    processes = ssh_helper.get_top_memory_usage_processes(10, legacy_gateway)
     file_location = folder + "/" + "most_memory_usage_processes.log"
 
     # Create the string written to the log
@@ -341,25 +338,44 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
     recordingThread.start()
 
 
-def main():
-    global folder
+def run_test(filename, hostname, ssh_username, ssh_password, web_username, web_password,\
+    track_hart, track_isa, supports_isa, is_legacy_gateway, processes_to_track,\
+        measurement_interval, time_limit):
     
-    folder = filename.split(".csv")[0]
-    filename = folder + "/" + filename
+    global folder
+    global legacy_gateway
+    
+    legacy_gateway = is_legacy_gateway
+
+    # Create a folder for the test results after parsing the names
+    path = filename.split("/")
+    folder = ""
+    for part in path:
+        if part != path[-1]:
+            folder += (part + "/")
+        else:
+            folder += part.split(".csv")[0]
+    filename = folder + "/" + path[-1]
 
     if not(os.path.exists(folder)):
         os.mkdir(folder)
     
     # Establish the SSH/SCP connections
-    gateway = IsaDeviceCounter(hostname = hostname, username = username, password = password)
+    gateway = IsaDeviceCounter(hostname = hostname, username = ssh_username, password = ssh_password)
 
     # Create the GwDeviceCounter object and connect to the gateway
     scraper = None
     if track_hart:
-        scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password, supports_isa = True, factory_enabled = True, open_devices = False)
+        scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password,\
+            supports_isa = supports_isa, old_login_fields = legacy_gateway, factory_enabled = True, open_devices = False)
     
     # Register the processes to track with the gateway
-    gateway.clientSsh.register_processes(processes_to_track)
+    for process in processes_to_track:
+        entries = process.split(",")
+        if len(entries) > 1:
+            gateway.clientSsh.register_process_by_pid(entries[0], entries[1])
+        else:
+            gateway.clientSsh.register_process(entries[0])
     
     # Write the header row for the recorded data
     with open(filename, "w") as result_file:
@@ -376,6 +392,8 @@ def main():
     # Since the thread is a daemon, it will be automatically stopped once the user exits in the main thread
     recordingThread = threading.Thread(target = record_data, name = "DataRecording", args = (filename, gateway, scraper, measurement_interval, track_hart, track_isa), daemon = True)
     recordingThread.start()
+
+    # TODO: Split the part below this into its own function called when either the time limit expires or the test is stopped
     
     # Wait until manipulating_data is False to safely quit
     if manipulating_data:
@@ -406,7 +424,3 @@ def main():
     gateway.close()
 
     print("Program Finished")
-
-
-if __name__ == "__main__":
-    main()

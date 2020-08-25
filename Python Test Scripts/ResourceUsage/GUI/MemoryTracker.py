@@ -11,6 +11,7 @@ from configparser import ConfigParser
 import json
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/..")
+from MemoryUsageOverTimeHartISA import run_test
 
 ENTRY_WIDGET_WIDTH = 50
 DEFAULT_COLOR = "#F0F0F0"
@@ -366,6 +367,9 @@ class MemoryTrackerGui(tk.Frame):
     def start_test(self):
         self.set_test_options()
         self.save_config_file()
+        run_test(self.filename, self.hostname, self.ssh_username, self.ssh_password, self.web_username, self.web_password,\
+            self.track_hart, self.track_isa, self.supports_isa, self.legacy_gateway, self.processes_tracked, self.measurement_period,\
+                self.time_limit)
 
 
 def main():
