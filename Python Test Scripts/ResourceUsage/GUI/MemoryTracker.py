@@ -207,7 +207,7 @@ class MemoryTrackerGui(tk.Frame):
         self.process_entry_frame.grid(row = 4, column = 0, columnspan = 3)
 
 
-        # Read the INI config file settings into the GUI elements
+        # Read the JSON config file settings into the GUI elements
         self.read_config_file()
 
         # Generate an output filename as a default based on the time and date
@@ -250,7 +250,7 @@ class MemoryTrackerGui(tk.Frame):
 
             # Write the config file to JSON
             with open(CONFIG_FILE_NAME_JSON, "w") as f:
-                f.write(json.dumps(config))
+                f.write(json.dumps(config, indent = 4))
         
         # Read the options from the config file
         with open(CONFIG_FILE_NAME_JSON, "r") as f:
