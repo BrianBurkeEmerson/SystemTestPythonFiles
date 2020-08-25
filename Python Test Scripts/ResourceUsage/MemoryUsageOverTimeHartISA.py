@@ -41,57 +41,6 @@ memory_usages = []
 
 
 
-def verify_int_input_option(allowed_options = (1, 2), prompt = "Choose: ", error = "ERROR: Invalid input"):
-    while True:
-        option = input(prompt)
-        option_int = None
-
-        # Check if input is a valid integer
-        try:
-            option_int = int(option)
-        except:
-            print("ERROR: Unable to parse input")
-            continue
-
-        # Check if the user's input is one of the allowed options
-        if option_int in allowed_options:
-            return option_int
-        else:
-            print(error)
-            continue
-
-
-def verify_int_input_range(upper_bound = 1, lower_bound = 0, use_upper_bound = True, use_lower_bound = True, prompt = ""):
-    while True:
-        value = input(prompt)
-        value_int = None
-
-        # Check if input is a valid integer
-        try:
-            value_int = int(value)
-        except:
-            print("ERROR: Enter a valid integer")
-            continue
-        
-        # Check if the input is inside the upper and lower bounds
-        if use_upper_bound:
-            if value_int <= upper_bound:
-                return value_int
-            else:
-                print("ERROR: Enter a number less than or equal to " + str(upper_bound))
-                continue
-        
-        if use_lower_bound:
-            if value_int >= lower_bound:
-                return value_int
-            else:
-                print("ERROR: Enter a number greater than or equal to " + str(lower_bound))
-                continue
-        
-        if not(use_upper_bound) and not(use_lower_bound):
-            return value_int
-
-
 def remove_non_numbers(input_string = ""):
     return_string = ""
 
