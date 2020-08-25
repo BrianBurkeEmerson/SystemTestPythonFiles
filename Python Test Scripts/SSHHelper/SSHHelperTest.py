@@ -6,7 +6,7 @@ def get_memory_usage(client, process):
     print(process + ": " + str(client.get_memory_usage_by_name(process)))
 
 
-ssh = SSHHelper("toc0")
+ssh = SSHHelper("systestdual")
 
 processes = ["dcc", "hartserver", "java", "stunnel", "xmlrpcd", "fimmgrd",\
     "syslog-ng", "SystemManager", "isa_gw", "MonitorHost", "mbserver", "apdriver", "scgi_svc", "led_reset_monit"]

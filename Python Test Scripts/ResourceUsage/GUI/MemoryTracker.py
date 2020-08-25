@@ -128,6 +128,7 @@ class ProcessEntryWindow(tk.LabelFrame):
                 process_name = str(pid)
             
             # Add process to list
+            self._add_process_code(str(pid) + "," + process_name)
 
 
     def _add_process_code(self, process_name):
@@ -227,8 +228,8 @@ class MemoryTrackerGui(tk.Frame):
             }
             config["Gateway"] = {
                 "Hostname" : "192.168.1.10",
-                "Username" : "root",
-                "Password" : "emerson1",
+                "SshUsername" : "root",
+                "SshPassword" : "emerson1",
                 "Legacy" : False,
                 "SupportsIsa" : True
             }
@@ -242,10 +243,10 @@ class MemoryTrackerGui(tk.Frame):
                 "MeasurementInterval" : 60, # How long between measurements
                 "TrackHART" : True, # If set to True, the program records the number of connected HART devices (adds extra time)
                 "TrackISA" : True, # If set to True, the program records the number of connected ISA devices
-                "ProcessesToTrack" : "" # The list of processes whose memory usage should be tracked (separated by a comma with no spaces)
+                "ProcessesToTrack" : [] # The list of processes whose memory usage should be tracked (separated by a comma with no spaces)
             }
             config["Files"] = {
-                "UseAutomaticFilename" : False # If set to True, the filename is automatically generated based on when the test started
+                "UseAutomaticFilename" : True # If set to True, the filename is automatically generated based on when the test started
             }
 
             # Write the config file to JSON
@@ -256,15 +257,15 @@ class MemoryTrackerGui(tk.Frame):
         with open(CONFIG_FILE_NAME_JSON, "r") as f:
             config = json.loads(f.read())
 
-        # Fill in the GUI elements according to the INI file
+        # Fill in the GUI elements according to the JSON file
         self.hostname_entry.entry.delete(0, tk.END)
         self.hostname_entry.entry.insert(0, config["Gateway"]["Hostname"])
 
         self.ssh_username_entry.entry.delete(0, tk.END)
-        self.ssh_username_entry.entry.insert(0, config["Gateway"]["Username"])
+        self.ssh_username_entry.entry.insert(0, config["Gateway"]["SshUsername"])
 
         self.ssh_password_entry.entry.delete(0, tk.END)
-        self.ssh_password_entry.entry.insert(0, config["Gateway"]["Password"])
+        self.ssh_password_entry.entry.insert(0, config["Gateway"]["SshPassword"])
 
         self.web_username_entry.entry.delete(0, tk.END)
         self.web_username_entry.entry.insert(0, config["WebBrowser"]["WebUsername"])
@@ -303,8 +304,42 @@ class MemoryTrackerGui(tk.Frame):
         else:
             self.supports_isa_check.state(["!selected", "!alternate"])
 
-        for process in config["DataRecording"]["ProcessesToTrack"].split(','):
+        for process in config["DataRecording"]["ProcessesToTrack"]:
             self.process_entry_frame._add_process_code(process)
+    
+
+    def save_config_file(self):
+        config = {}
+
+        config["General"] = {
+            "UseSettingsFromConfigFile" : True # Whether the settings stored in the config file should be used
+        }
+        config["Gateway"] = {
+            "Hostname" : self.hostname_entry.entry.get(),
+            "SshUsername" : self.ssh_username_entry.entry.get(),
+            "SshPassword" : self.ssh_password_entry.entry.get(),
+            "Legacy" : self.legacy_gateway_check.instate(["selected"]),
+            "SupportsIsa" : self.supports_isa_check.instate(["selected"])
+        }
+        config["WebBrowser"] = {
+            "WebUsername" : self.web_username_entry.entry.get(),
+            "WebPassword" : self.web_password_entry.entry.get()
+        }
+        config["DataRecording"] = {
+            "UseTimeLimit" : self.use_time_limit_check.instate(["selected"]), # If set to False, user manually stops test
+            "TimeLimit" : int(self.time_limit_entry.entry.get()), # Time limit for test in seconds
+            "MeasurementInterval" : int(self.measurement_period_entry.entry.get()), # How long between measurements
+            "TrackHART" : self.track_hart_check.instate(["selected"]), # If set to True, the program records the number of connected HART devices (adds extra time)
+            "TrackISA" : self.track_isa_check.instate(["selected"]), # If set to True, the program records the number of connected ISA devices
+            "ProcessesToTrack" : self.processes_tracked # The list of processes whose memory usage should be tracked (separated by a comma with no spaces)
+        }
+        config["Files"] = {
+            "UseAutomaticFilename" : True # If set to True, the filename is automatically generated based on when the test started
+        }
+
+        # Write the config file to JSON
+        with open(CONFIG_FILE_NAME_JSON, "w") as f:
+            f.write(json.dumps(config, indent = 4))
 
     
     # Changes internal variables for how the test is run (taken from GUI elements)
@@ -320,6 +355,8 @@ class MemoryTrackerGui(tk.Frame):
         self.track_hart = self.track_hart_check.instate(["selected"])
         self.track_isa = self.track_isa_check.instate(["selected"])
         self.filename = self.save_file_selector.entry.get()
+        self.legacy_gateway = self.legacy_gateway_check.instate(["selected"])
+        self.supports_isa = self.supports_isa_check.instate(["selected"])
 
         self.processes_tracked = []
         for process in self.process_entry_frame.children_processes:
@@ -328,6 +365,7 @@ class MemoryTrackerGui(tk.Frame):
     
     def start_test(self):
         self.set_test_options()
+        self.save_config_file()
 
 
 def main():

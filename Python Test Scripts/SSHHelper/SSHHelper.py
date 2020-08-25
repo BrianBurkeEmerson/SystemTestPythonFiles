@@ -138,6 +138,22 @@ class SSHHelper(paramiko.SSHClient):
             self.register_process(process)
     
 
+    # Registers a process with a PID directly instead of using pgrep
+    # This is recommended to ensure you track the correct process
+    # pid: The PID of the process to be tracked
+    # identifier: A name to identify the process being tracked
+    def register_process_by_pid(self, pid, identifier = ""):
+        if identifier in self.processes:
+            self.processes[identifier]["pid_list"].append(pid)
+            self.processes[identifier]["memory_usages"].append(0)
+        else:
+            self.processes[identifier] = {
+                "pid_list" : [pid],
+                "memory_usages" : [0],
+                "total_memory" : 0
+            }
+
+
     # Checks the memory usage of each registered process and returns the result as a list
     # The list will be returned in the order that processes are registered, so using a constant tuple or list is recommended when registering
     # This makes this method of checking memory usage drop-in compatible with the other methods
@@ -257,7 +273,7 @@ class SSHHelper(paramiko.SSHClient):
                 end_i = len(procs)
                 continue_sending = False
 
-            # Create an dictionary subset for commands to execute from the larger cmds dictionary
+            # Create a dictionary subset for commands to execute from the larger cmds dictionary
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 cmds_in_pass = {}
                 for i in range(start_i, end_i):
