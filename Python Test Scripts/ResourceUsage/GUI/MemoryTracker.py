@@ -11,7 +11,7 @@ from configparser import ConfigParser
 import json
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/..")
-from MemoryUsageOverTimeHartISA import run_test
+from MemoryUsageOverTimeHartISA import (run_test, terminate_test)
 
 ENTRY_WIDGET_WIDTH = 50
 DEFAULT_COLOR = "#F0F0F0"
@@ -189,7 +189,7 @@ class MemoryTrackerGui(tk.Frame):
         self.track_isa_check = ttk.Checkbutton(master, text = "Track ISA100 device count")
         self.track_isa_check.grid(row = 0, column = 3)
 
-        self.legacy_gateway_check = ttk.Checkbutton(master, text = "Legacy Gateway (<V5.0.0)")
+        self.legacy_gateway_check = ttk.Checkbutton(master, text = "Legacy Gateway")
         self.legacy_gateway_check.grid(row = 1, column = 2)
 
         self.supports_isa_check = ttk.Checkbutton(master, text = "Gateway Supports ISA")
@@ -369,19 +369,38 @@ class MemoryTrackerGui(tk.Frame):
         self.save_config_file()
         run_test(self)
 
-        self.start_button["text"] = "     Stop     "
-        self.start_button["command"] = self.stop_test
+        if self.use_time_limit:
+            self.start_button["text"] = " Running Test "
+            self.start_button["command"] = None
+
+            timeLimitThread = threading.Timer(self.time_limit, self.stop_test)
+            timeLimitThread.start()
+        else:
+            self.start_button["text"] = "     Stop     "
+            self.start_button["command"] = self.stop_test
     
 
     def stop_test(self):
+        terminate_test(self)
+
         self.start_button["text"] = "     Start     "
         self.start_button["command"] = self.start_test
 
 
+root = None
+
+def quit_program():
+    global root
+    root.quit()
+    root.destroy()
+
+
 def main():
+    global root
     root = tk.Tk()
     _app = MemoryTrackerGui(root)
     root.wm_title("Memory Tracker")
+    root.protocol("WM_DELETE_WINDOW", quit_program)
     root.mainloop()
 
 

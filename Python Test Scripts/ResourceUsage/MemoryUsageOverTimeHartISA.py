@@ -26,12 +26,15 @@ from MemoryUsagePlotting import plot_csv_memory_file
 
 
 
-
 manipulating_data = False # Tracks whether the secondary thread is downloading/processing/recording data to prevent corruption
-legacy_gateway = False
+legacy_gateway = False # Is a legacy gateway being used (login fields have different names)
+scraper = None # The web scraper object that controls the browser
+gateway = None # The SSH/SCP connections to the gateway
+recordingThread = None # The thread that initiates recording operations
 
 # Track the folder where all files are stored
 folder = ""
+output_filename = ""
 
 # Initialize variables for counting the number of devices
 isa_devices = 0
@@ -62,7 +65,14 @@ def save_top_10_memory_usage_processes(ssh_helper):
     # Create the string written to the log
     log_string = ""
     for process in range(len(processes)):
-        log_string += (str(process + 1) + ": " + str(processes[process][0]) + " - " + str(processes[process][1]) + "%\n")
+        try:
+            log_string += str(process + 1)
+            log_string += ": "
+            log_string += str(processes[process][0])
+            log_string += " - "
+            log_string += str(processes[process][1]) + "%\n"
+        except IndexError:
+            log_string = "No Data"
         
     log_string += "\n\n\n\n"
 
@@ -205,6 +215,7 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
     global hart_devices
     global memory_usages
     global cpu_usage
+    global recordingThread
 
     manipulating_data = True # Indicate the thread is running and working on data
 
@@ -288,9 +299,11 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
 
 
 def run_test(gui):
-    
     global folder
+    global output_filename
     global legacy_gateway
+    global gateway
+    global scraper
     
     legacy_gateway = gui.legacy_gateway
 
@@ -302,7 +315,7 @@ def run_test(gui):
             folder += (part + "/")
         else:
             folder += part.split(".csv")[0]
-    filename = folder + "/" + path[-1]
+    output_filename = folder + "/" + path[-1]
 
     if not(os.path.exists(folder)):
         os.mkdir(folder)
@@ -312,7 +325,7 @@ def run_test(gui):
 
     # Create the GwDeviceCounter object and connect to the gateway
     scraper = None
-    if track_hart:
+    if gui.track_hart:
         scraper = GwDeviceCounter(hostname = gui.hostname, user = gui.web_username, password = gui.web_password,\
             supports_isa = gui.supports_isa, old_login_fields = gui.legacy_gateway, factory_enabled = True, open_devices = False)
     
@@ -325,7 +338,7 @@ def run_test(gui):
             gateway.clientSsh.register_process(entries[0])
     
     # Write the header row for the recorded data
-    with open(filename, "w") as result_file:
+    with open(output_filename, "w") as result_file:
         header_line = "Date and Time,HART Devices,ISA Devices,All Devices,Total Mem (kB),Free Mem (kB),Avail Mem (kB),CPU Usage (%)"
 
         for process in gateway.clientSsh.processes:
@@ -338,33 +351,38 @@ def run_test(gui):
     # Create a new thread for polling the database, getting memory usage stats, and writing results
     # Since the thread is a daemon, it will be automatically stopped once the user exits in the main thread
     recordingThread = threading.Thread(target = record_data, name = "DataRecording",\
-        args = (filename, gateway, scraper, gui.measurement_period, gui.track_hart, gui.track_isa), daemon = True)
+        args = (output_filename, gateway, scraper, gui.measurement_period, gui.track_hart, gui.track_isa), daemon = True)
     recordingThread.start()
 
-    # TODO: Split the part below this into its own function called when either the time limit expires or the test is stopped
-    TODO causing an error here on purpose
-    
+
+def terminate_test(gui):
+    global scraper
+    global gateway
+    global output_filename
+
     # Wait until manipulating_data is False to safely quit
     if manipulating_data:
         print("Waiting for data recording operation to finish")
     while manipulating_data:
         continue
 
+    recordingThread.cancel()
+
     if scraper is not None:
         scraper.close()
     
     # Create a plot of the data after determine which devices to plot
     device_type_list = []
-    # if track_hart:
-    #     device_type_list.append(1)
-    # if track_isa:
-    #     device_type_list.append(2)
-    # if track_hart and track_isa:
-    #     device_type_list.append(3)
+    if gui.track_hart:
+        device_type_list.append(1)
+    if gui.track_isa:
+        device_type_list.append(2)
+    if gui.track_hart and gui.track_isa:
+        device_type_list.append(3)
 
     print("Generating plots...")
 
-    plot_csv_memory_file(filename, range(4, 7), device_type_list, range(1, 7), \
+    plot_csv_memory_file(output_filename, range(4, 7), device_type_list, range(1, 7), \
         axis_1_label = "Memory (kB)", axis_2_label = "Number of Devices", x_label = "Time", show_plot = False)
 
     print("Plots generated")
