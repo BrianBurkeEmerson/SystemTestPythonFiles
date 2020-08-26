@@ -31,6 +31,7 @@ legacy_gateway = False # Is a legacy gateway being used (login fields have diffe
 scraper = None # The web scraper object that controls the browser
 gateway = None # The SSH/SCP connections to the gateway
 recordingThread = None # The thread that initiates recording operations
+controller = None # The GUI that controls the program
 
 # Track the folder where all files are stored
 folder = ""
@@ -286,7 +287,7 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
     pmapDumpThread.join()
     mostMemoryProcessesThread.join()
     
-    print("Wrote \"" + csv_line[0:-1] + "\" at " + datetime.now().strftime("%x %X"))
+    controller.write_to_status_box("Wrote \"" + csv_line[0:-1] + "\" at " + datetime.now().strftime("%x %X"))
     
     # Indicate that the thread is finished working on data
     manipulating_data = False
@@ -304,8 +305,10 @@ def run_test(gui):
     global legacy_gateway
     global gateway
     global scraper
+    global controller
     
     legacy_gateway = gui.legacy_gateway
+    controller = gui
 
     # Create a folder for the test results after parsing the names
     path = gui.filename.split("/")
@@ -359,10 +362,11 @@ def terminate_test(gui):
     global scraper
     global gateway
     global output_filename
+    global controller
 
     # Wait until manipulating_data is False to safely quit
     if manipulating_data:
-        print("Waiting for data recording operation to finish")
+        controller.write_to_status_box("Waiting for data recording operation to finish")
     while manipulating_data:
         continue
 
@@ -380,14 +384,14 @@ def terminate_test(gui):
     if gui.track_hart and gui.track_isa:
         device_type_list.append(3)
 
-    print("Generating plots...")
+    controller.write_to_status_box("Generating plots...")
 
     plot_csv_memory_file(output_filename, range(4, 7), device_type_list, range(1, 7), \
         axis_1_label = "Memory (kB)", axis_2_label = "Number of Devices", x_label = "Time", show_plot = False)
 
-    print("Plots generated")
+    controller.write_to_status_box("Plots generated")
 
     # Close the SSH/SCP connection
     gateway.close()
 
-    print("Program Finished")
+    controller.write_to_status_box("Program Finished")

@@ -5,6 +5,7 @@ import threading
 import tkinter as tk
 import tkinter.simpledialog as sd
 import tkinter.filedialog as fd
+import tkinter.scrolledtext as st
 from tkinter import ttk
 from datetime import datetime
 from configparser import ConfigParser
@@ -101,7 +102,7 @@ class ProcessEntryWindow(tk.LabelFrame):
     def __init__(self, master):
         super().__init__(master, text = "Processes to Monitor")
 
-        # The children_processes attribute contains EntryWithRemoveButton's for each process to track
+        # The children_processes attribute contains EntryWithRemoveButton"s for each process to track
         self.children_processes = {}
         self.children_order = []
 
@@ -209,6 +210,9 @@ class MemoryTrackerGui(tk.Frame):
         self.process_entry_frame.grid(row = 4, column = 0, columnspan = 3)
 
 
+        self.status_box = st.ScrolledText(master, width = ENTRY_WIDGET_WIDTH, height = 10, state = "disabled")
+        self.status_box.grid(row = 0, column = 4, rowspan = 5, sticky = tk.N + tk.S)
+
         # Read the JSON config file settings into the GUI elements
         self.read_config_file()
 
@@ -216,6 +220,18 @@ class MemoryTrackerGui(tk.Frame):
         self.save_file_selector.entry.delete(0, tk.END)
         filename = datetime.now().strftime(self.hostname_entry.entry.get() + " - %a %d %B %Y - %I-%M-%S %p Memory Usage.csv")
         self.save_file_selector.entry.insert(0, filename)
+
+
+    def write_to_status_box(self, msg):
+        num_lines = int(self.status_box.index("end - 1 line").split(".")[0])
+        self.status_box["state"] = "normal"
+        if num_lines >= 100:
+            self.status_box.delete(1.0, 2.0)
+        if self.status_box.index("end-1c") != "1.0":
+            self.status_box.insert("end", "\n")
+        self.status_box.insert("end", msg)
+        self.status_box["state"] = "disabled"
+        self.status_box.see(tk.END)
 
 
     def read_config_file(self):
