@@ -367,9 +367,15 @@ class MemoryTrackerGui(tk.Frame):
     def start_test(self):
         self.set_test_options()
         self.save_config_file()
-        run_test(self.filename, self.hostname, self.ssh_username, self.ssh_password, self.web_username, self.web_password,\
-            self.track_hart, self.track_isa, self.supports_isa, self.legacy_gateway, self.processes_tracked, self.measurement_period,\
-                self.time_limit)
+        run_test(self)
+
+        self.start_button["text"] = "     Stop     "
+        self.start_button["command"] = self.stop_test
+    
+
+    def stop_test(self):
+        self.start_button["text"] = "     Start     "
+        self.start_button["command"] = self.start_test
 
 
 def main():

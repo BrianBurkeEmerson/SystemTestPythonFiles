@@ -287,17 +287,15 @@ def record_data(filename, gateway, scraper, measurement_interval, track_hart, tr
     recordingThread.start()
 
 
-def run_test(filename, hostname, ssh_username, ssh_password, web_username, web_password,\
-    track_hart, track_isa, supports_isa, is_legacy_gateway, processes_to_track,\
-        measurement_interval, time_limit):
+def run_test(gui):
     
     global folder
     global legacy_gateway
     
-    legacy_gateway = is_legacy_gateway
+    legacy_gateway = gui.legacy_gateway
 
     # Create a folder for the test results after parsing the names
-    path = filename.split("/")
+    path = gui.filename.split("/")
     folder = ""
     for part in path:
         if part != path[-1]:
@@ -310,16 +308,16 @@ def run_test(filename, hostname, ssh_username, ssh_password, web_username, web_p
         os.mkdir(folder)
     
     # Establish the SSH/SCP connections
-    gateway = IsaDeviceCounter(hostname = hostname, username = ssh_username, password = ssh_password)
+    gateway = IsaDeviceCounter(hostname = gui.hostname, username = gui.ssh_username, password = gui.ssh_password)
 
     # Create the GwDeviceCounter object and connect to the gateway
     scraper = None
     if track_hart:
-        scraper = GwDeviceCounter(hostname = hostname, user = web_username, password = web_password,\
-            supports_isa = supports_isa, old_login_fields = legacy_gateway, factory_enabled = True, open_devices = False)
+        scraper = GwDeviceCounter(hostname = gui.hostname, user = gui.web_username, password = gui.web_password,\
+            supports_isa = gui.supports_isa, old_login_fields = gui.legacy_gateway, factory_enabled = True, open_devices = False)
     
     # Register the processes to track with the gateway
-    for process in processes_to_track:
+    for process in gui.processes_tracked:
         entries = process.split(",")
         if len(entries) > 1:
             gateway.clientSsh.register_process_by_pid(entries[0], entries[1])
@@ -339,10 +337,12 @@ def run_test(filename, hostname, ssh_username, ssh_password, web_username, web_p
 
     # Create a new thread for polling the database, getting memory usage stats, and writing results
     # Since the thread is a daemon, it will be automatically stopped once the user exits in the main thread
-    recordingThread = threading.Thread(target = record_data, name = "DataRecording", args = (filename, gateway, scraper, measurement_interval, track_hart, track_isa), daemon = True)
+    recordingThread = threading.Thread(target = record_data, name = "DataRecording",\
+        args = (filename, gateway, scraper, gui.measurement_period, gui.track_hart, gui.track_isa), daemon = True)
     recordingThread.start()
 
     # TODO: Split the part below this into its own function called when either the time limit expires or the test is stopped
+    TODO causing an error here on purpose
     
     # Wait until manipulating_data is False to safely quit
     if manipulating_data:
