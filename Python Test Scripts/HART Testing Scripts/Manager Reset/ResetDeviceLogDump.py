@@ -36,6 +36,9 @@ class InteractiveSsh(paramiko.SSHClient):
                 tries += 1
                 time.sleep(0.1)
         
+        if tries >= 10:
+            raise TimeoutError("Could not send command")
+        
         # Attempt to return data returned from the command
         tries = 0
         return_data = ""
@@ -54,28 +57,42 @@ class InteractiveSsh(paramiko.SSHClient):
     
 
     def start_nwconsole(self, username = "admin", password = "admin"):
-        self.safe_send("/opt/dust-manager/bin/nwconsole")
-        self.safe_send(username)
-        self.safe_send(password)
+        return_string = self.safe_send("/opt/dust-manager/bin/nwconsole")
+        return_string += self.safe_send(username)
+        return_string += self.safe_send(password)
+
+        if "Could not connect to dcc" in return_string:
+            raise TimeoutError("DCC has not started yet")
 
 
 def nwconsole_observation(observer, folder):
     global ts_fmt
 
-    observer.start_nwconsole()
+    while True:
+        try:
+            observer.start_nwconsole()
+            break
+        except TimeoutError:
+            time.sleep(1)
+    print("Opened nwconsole")
 
     id_mac_pairs = {}
 
     # Get a list of MAC addresses with associated mote IDs
-    sm = observer.safe_send("sm -a").splitlines()
-    for line in sm:
-        # Only parse lines containing MAC addresses (all start with the same bytes)
-        if "00-1B-1E" in line:
-            columns = re.split("\s{1,}", line.strip())
-            if "ap" in columns:
-                id_mac_pairs[columns[2]] = columns[0]
-            else:
-                id_mac_pairs[columns[1]] = columns[0]
+    retry_sm = True
+    while retry_sm:
+        id_mac_pairs = {}
+        sm = observer.safe_send("sm -a").splitlines()
+        for line in sm:
+            # Only parse lines containing MAC addresses (all start with the same bytes)
+            if "00-" in line:
+                columns = re.split("\s{1,}", line.strip())
+                if "ap" in columns:
+                    id_mac_pairs[columns[2]] = columns[0]
+                    retry_sm = False
+                else:
+                    id_mac_pairs[columns[1]] = columns[0]
+    print("Created mote ID/MAC address associations")
 
     # Create a folder to hold each log
     if not(os.path.exists(folder)):
@@ -135,7 +152,8 @@ def hartserver_observation(observer, folder):
     # Start watching hartserver with the tail commmand
     while "No such file or directory" in observer.safe_send("tail -F /var/apache/data/hartserver.txt"):
         time.sleep(1)
-        print("Trying to open hartserver")
+        print("Trying to open hartserver...")
+    print("Opened hartserver")
 
     # Wait for status changes to come through and write them to the correct files with timestamps
     while True:
@@ -153,8 +171,8 @@ def hartserver_observation(observer, folder):
         if return_data != "":
             lines = return_data.splitlines()
             for line in lines:
-                if "00-1B-1E" in line:
-                    start_index = line.find("00-1B-1E")
+                if "00-" in line:
+                    start_index = line.find("00-")
                     end_index = line.find(" ", start_index)
                     mote_mac = line[start_index:end_index]
                     if end_index == -1:
@@ -173,7 +191,20 @@ def hartserver_observation(observer, folder):
 
 
 def main():
-    hostname = "toc0"
+    hostname = "toc1"
+
+    # Continuously attempt to connect to the gateway until a connection is established
+    # Close the connection immediately to allow the nwconsole and hartserver observers to run
+    connection_verification = paramiko.SSHClient()
+    connection_verification.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    while True:
+        try:
+            connection_verification.connect(hostname = hostname, port = 22, username = "root", password = "emerson1")
+            break
+        except:
+            time.sleep(1)
+    connection_verification.close()
+
     nwconsole_observer = InteractiveSsh(hostname = hostname)
     hartserver_observer = InteractiveSsh(hostname = hostname)
 
