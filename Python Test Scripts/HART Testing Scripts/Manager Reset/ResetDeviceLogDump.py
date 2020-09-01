@@ -157,6 +157,8 @@ def hartserver_observation(observer, folder):
                     start_index = line.find("00-1B-1E")
                     end_index = line.find(" ", start_index)
                     mote_mac = line[start_index:end_index]
+                    if end_index == -1:
+                        mote_mac = line[start_index:]
 
                     now = datetime.now()
                     log_line = now.strftime(str(now.timestamp()) + " $ " + ts_fmt + " $ " + line + "\n")
