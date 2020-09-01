@@ -6,6 +6,8 @@ import threading
 import os
 from datetime import datetime
 
+ts_fmt = "%m/%d/%y %H:%M:%S"
+
 class InteractiveSsh(paramiko.SSHClient):
     def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1"):
         super().__init__()
@@ -58,6 +60,8 @@ class InteractiveSsh(paramiko.SSHClient):
 
 
 def nwconsole_observation(observer, folder):
+    global ts_fmt
+
     observer.start_nwconsole()
 
     id_mac_pairs = {}
@@ -83,7 +87,8 @@ def nwconsole_observation(observer, folder):
     # Create blank log files for each device
     for mote_id in id_mac_pairs:
         with open(folder + "/" + subfolder + "/" + str(id_mac_pairs[mote_id]) + ".txt", "w") as f:
-            log_line = datetime.now().strftime("%X: Test Started\n")
+            now = datetime.now()
+            log_line = now.strftime(str(now.timestamp()) + " $ " + ts_fmt + " $ Test Started\n")
             f.write(log_line)
     
     observer.safe_send("trace motest on")
@@ -109,7 +114,8 @@ def nwconsole_observation(observer, folder):
                     end_index = line.find(" ", start_index)
                     mote_id = line[start_index:end_index]
 
-                    log_line = datetime.now().strftime("%X: " + line + "\n")
+                    now = datetime.now()
+                    log_line = now.strftime(str(now.timestamp()) + " $ " + ts_fmt + " $ " + line + "\n")
 
                     with open(folder + "/" + subfolder + "/" + str(id_mac_pairs[mote_id]) + ".txt", "a") as f:
                         f.write(log_line)
@@ -117,6 +123,8 @@ def nwconsole_observation(observer, folder):
 
 
 def hartserver_observation(observer, folder):
+    global ts_fmt
+
     # Create a folder to hold each log
     if not(os.path.exists(folder)):
         os.mkdir(folder)
@@ -146,11 +154,12 @@ def hartserver_observation(observer, folder):
             lines = return_data.splitlines()
             for line in lines:
                 if "00-1B-1E" in line:
-                    start_index = line.find("00-1B-1E")# + len("00-1B-1E")
+                    start_index = line.find("00-1B-1E")
                     end_index = line.find(" ", start_index)
                     mote_mac = line[start_index:end_index]
 
-                    log_line = datetime.now().strftime("%X: " + line + "\n")
+                    now = datetime.now()
+                    log_line = now.strftime(str(now.timestamp()) + " $ " + ts_fmt + " $ " + line + "\n")
 
                     write_mode = "w"
                     if os.path.exists(folder + "/" + subfolder + "/" + mote_mac + ".txt"):
