@@ -6,7 +6,10 @@ import threading
 import os
 from datetime import datetime
 
+from ParseDeviceLogs import parse_device_logs
+
 ts_fmt = "%m/%d/%y %H:%M:%S"
+monitor_log = True
 
 class InteractiveSsh(paramiko.SSHClient):
     def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1"):
@@ -67,6 +70,7 @@ class InteractiveSsh(paramiko.SSHClient):
 
 def nwconsole_observation(observer, folder):
     global ts_fmt
+    global monitor_log
 
     while True:
         try:
@@ -111,7 +115,7 @@ def nwconsole_observation(observer, folder):
     observer.safe_send("trace motest on")
 
     # Wait for status changes to come through and write them to the correct files with timestamps
-    while True:
+    while monitor_log:
         tries = 0
         return_data = ""
         while tries < 10:
@@ -141,6 +145,7 @@ def nwconsole_observation(observer, folder):
 
 def hartserver_observation(observer, folder):
     global ts_fmt
+    global monitor_log
 
     # Create a folder to hold each log
     if not(os.path.exists(folder)):
@@ -156,7 +161,7 @@ def hartserver_observation(observer, folder):
     print("Opened hartserver")
 
     # Wait for status changes to come through and write them to the correct files with timestamps
-    while True:
+    while monitor_log:
         tries = 0
         return_data = ""
         while tries < 10:
@@ -191,7 +196,11 @@ def hartserver_observation(observer, folder):
 
 
 def main():
+    global monitor_log
+
     hostname = "toc1"
+    username = "root"
+    password = "emerson1"
 
     # Continuously attempt to connect to the gateway until a connection is established
     # Close the connection immediately to allow the nwconsole and hartserver observers to run
@@ -199,27 +208,36 @@ def main():
     connection_verification.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     while True:
         try:
-            connection_verification.connect(hostname = hostname, port = 22, username = "root", password = "emerson1")
+            connection_verification.connect(hostname = hostname, port = 22, username = username, password = password)
             break
         except:
             time.sleep(1)
     connection_verification.close()
 
-    nwconsole_observer = InteractiveSsh(hostname = hostname)
-    hartserver_observer = InteractiveSsh(hostname = hostname)
+    nwconsole_observer = InteractiveSsh(hostname = hostname, port = 22, username = username, password = password)
+    hartserver_observer = InteractiveSsh(hostname = hostname, port = 22, username = username, password = password)
 
     folder = datetime.now().strftime(hostname + " - %a %d %B %Y - %I-%M-%S %p")
 
     # Setup each observer with their own thread to begin monitoring
-    nwconsole_observation_thread = threading.Thread(target = nwconsole_observation, args = (nwconsole_observer, folder), name = "nwconsole Observation", daemon = True)
+    nwconsole_observation_thread = threading.Thread(target = nwconsole_observation, args = (nwconsole_observer, folder), name = "nwconsole Observation")
     nwconsole_observation_thread.start()
-    hartserver_observation_thread = threading.Thread(target = hartserver_observation, args = (hartserver_observer, folder), name = "hartserver Observation", daemon = True)
+    hartserver_observation_thread = threading.Thread(target = hartserver_observation, args = (hartserver_observer, folder), name = "hartserver Observation")
     hartserver_observation_thread.start()
 
     # Wait for user to enter quit to stop logging
     while input("Type \"quit\" to stop logging data: ").lower() != "quit":
         continue
 
+    print("Stopping logging...")
+
+    monitor_log = False
+
+    # Join the observation threads
+    nwconsole_observation_thread.join()
+    hartserver_observation_thread.join()
+
+    # Cancel the monitoring operations
     nwconsole_observer.safe_send("trace motest off")
     hartserver_observer.safe_send("\x03")
 
@@ -228,6 +246,10 @@ def main():
     nwconsole_observer.close()
     hartserver_observer.shell.close()
     hartserver_observer.close()
+
+    # Parse the logs
+    print("Parsing device logs...")
+    parse_device_logs(folder)
 
 
 if __name__ == "__main__":
