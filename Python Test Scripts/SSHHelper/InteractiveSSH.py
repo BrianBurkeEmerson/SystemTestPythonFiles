@@ -101,7 +101,7 @@ class InteractiveSSH(paramiko.SSHClient):
     def get_paths(self, return_mac_paths = False):
         mac_id_pairs = self.get_mote_id_mac_associations(use_mac_keys = True)
 
-        lines = self.safe_send("get paths")
+        lines = self.safe_send("get paths").splitlines()
         
         # Break each path into its own array to make processing easier
         paths_raw = [] # Stores all paths
@@ -147,7 +147,7 @@ class InteractiveSSH(paramiko.SSHClient):
                         used_path = False
             
             # If the path is used, add it to the list
-            if used_path:
+            if used_path and (mote_A_mac != ""):
                 paths_mac.append([mote_A_mac, mote_B_mac])
                 paths_id.append([mote_A_id, mote_B_id])
             
