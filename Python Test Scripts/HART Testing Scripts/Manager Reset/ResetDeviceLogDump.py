@@ -72,6 +72,7 @@ def nwconsole_observation(observer, folder):
     global ts_fmt
     global monitor_log
 
+    # Keep trying to open nwconsole until the service is ready to run after a reboot
     while True:
         try:
             observer.start_nwconsole()
@@ -131,13 +132,16 @@ def nwconsole_observation(observer, folder):
             lines = return_data.splitlines()
             for line in lines:
                 if "Mote #" in line:
+                    # Get the mote number from the message
                     start_index = line.find("Mote #") + len("Mote #")
                     end_index = line.find(" ", start_index)
                     mote_id = line[start_index:end_index]
 
+                    # Get a timestamp and write it in Unix format and the custom format separated by $ symbols
                     now = datetime.now()
                     log_line = now.strftime(str(now.timestamp()) + " $ " + ts_fmt + " $ " + line + "\n")
 
+                    # Write the log line
                     with open(folder + "/" + subfolder + "/" + str(id_mac_pairs[mote_id]) + ".txt", "a") as f:
                         f.write(log_line)
                         print(log_line, end = "")
@@ -177,19 +181,29 @@ def hartserver_observation(observer, folder):
             lines = return_data.splitlines()
             for line in lines:
                 if "00-" in line:
+                    # Get the MAC address out of the line
                     start_index = line.find("00-")
                     end_index = line.find(" ", start_index)
                     mote_mac = line[start_index:end_index]
+
+                    # If the MAC address is at the end of the line, no space will be present after the address
                     if end_index == -1:
                         mote_mac = line[start_index:]
 
+                    # If the MAC address is at the end of a sentence, the period needs to be removed
+                    if mote_mac.endswith("."):
+                        mote_mac = mote_mac[:-1]
+
+                    # Get a timestamp and write it in Unix format and the custom format separated by $ symbols
                     now = datetime.now()
                     log_line = now.strftime(str(now.timestamp()) + " $ " + ts_fmt + " $ " + line + "\n")
 
+                    # Determine whether a new file needs to be created or if an existing one should be appended
                     write_mode = "w"
                     if os.path.exists(folder + "/" + subfolder + "/" + mote_mac + ".txt"):
                         write_mode = "a"
                     
+                    # Write the log line
                     with open(folder + "/" + subfolder + "/" + mote_mac + ".txt", write_mode) as f:
                         f.write(log_line)
                         print(log_line, end = "")
@@ -198,7 +212,7 @@ def hartserver_observation(observer, folder):
 def main():
     global monitor_log
 
-    hostname = "toc1"
+    hostname = "toc0"
     username = "root"
     password = "emerson1"
 
@@ -214,9 +228,11 @@ def main():
             time.sleep(1)
     connection_verification.close()
 
+    # Create two SSH sessions so one can monitor nwconsole while the other monitors hartserver
     nwconsole_observer = InteractiveSsh(hostname = hostname, port = 22, username = username, password = password)
     hartserver_observer = InteractiveSsh(hostname = hostname, port = 22, username = username, password = password)
 
+    # Create a folder to hold the data
     folder = datetime.now().strftime(hostname + " - %a %d %B %Y - %I-%M-%S %p")
 
     # Setup each observer with their own thread to begin monitoring
@@ -249,7 +265,9 @@ def main():
 
     # Parse the logs
     print("Parsing device logs...")
-    parse_device_logs(folder)
+    loc = parse_device_logs(folder)
+
+    print("Finished test and stored results in " + loc)
 
 
 if __name__ == "__main__":
