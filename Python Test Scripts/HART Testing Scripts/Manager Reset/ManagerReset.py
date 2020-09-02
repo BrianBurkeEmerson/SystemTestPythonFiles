@@ -4,68 +4,16 @@ import time
 import re
 import threading
 import os
+import sys
 from datetime import datetime
 
 from ParseDeviceLogs import parse_device_logs
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../SSHHelper")
+from InteractiveSSH import InteractiveSSH
+
 ts_fmt = "%m/%d/%y %H:%M:%S"
 monitor_log = True
-
-class InteractiveSsh(paramiko.SSHClient):
-    def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1"):
-        super().__init__()
-
-        self.hostname = hostname
-        self.port = port
-        self.username = username
-        self.password = password
-
-        self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.connect(hostname = self.hostname, port = self.port, username = self.username, password = self.password)
-
-        self.shell = self.invoke_shell()
-    
-
-    def safe_send(self, data, send_newline = True, return_response = True):
-        # Send data to the client
-        tries = 0
-        while tries < 10:
-            if self.shell.send_ready():
-                self.shell.send(data)
-                if send_newline:
-                    self.shell.send("\n")
-                break
-            else:
-                tries += 1
-                time.sleep(0.1)
-        
-        if tries >= 10:
-            raise TimeoutError("Could not send command")
-        
-        # Attempt to return data returned from the command
-        tries = 0
-        return_data = ""
-        while tries < 10:
-            if self.shell.recv_ready():
-                return_data += self.shell.recv(1).decode("ascii")
-                tries = 0
-            else:
-                tries += 1
-                time.sleep(0.1)
-        
-        if return_response:
-            return return_data
-        else:
-            return ""
-    
-
-    def start_nwconsole(self, username = "admin", password = "admin"):
-        return_string = self.safe_send("/opt/dust-manager/bin/nwconsole")
-        return_string += self.safe_send(username)
-        return_string += self.safe_send(password)
-
-        if "Could not connect to dcc" in return_string:
-            raise TimeoutError("DCC has not started yet")
 
 
 def nwconsole_observation(observer, folder):
@@ -81,22 +29,7 @@ def nwconsole_observation(observer, folder):
             time.sleep(1)
     print("Opened nwconsole")
 
-    id_mac_pairs = {}
-
-    # Get a list of MAC addresses with associated mote IDs
-    retry_sm = True
-    while retry_sm:
-        id_mac_pairs = {}
-        sm = observer.safe_send("sm -a").splitlines()
-        for line in sm:
-            # Only parse lines containing MAC addresses (all start with the same bytes)
-            if "00-" in line:
-                columns = re.split("\s{1,}", line.strip())
-                if "ap" in columns:
-                    id_mac_pairs[columns[2]] = columns[0]
-                    retry_sm = False
-                else:
-                    id_mac_pairs[columns[1]] = columns[0]
+    id_mac_pairs = observer.get_mote_id_mac_associations()
     print("Created mote ID/MAC address associations")
 
     # Create a folder to hold each log
@@ -117,15 +50,7 @@ def nwconsole_observation(observer, folder):
 
     # Wait for status changes to come through and write them to the correct files with timestamps
     while monitor_log:
-        tries = 0
-        return_data = ""
-        while tries < 10:
-            if observer.shell.recv_ready():
-                return_data += observer.shell.recv(1).decode("ascii")
-                tries = 0
-            else:
-                tries += 1
-                time.sleep(0.1)
+        return_data = observer.poll_for_data()
         
         # If lines come through, parse them and write them to the correct files
         if return_data != "":
@@ -229,8 +154,8 @@ def main():
     connection_verification.close()
 
     # Create two SSH sessions so one can monitor nwconsole while the other monitors hartserver
-    nwconsole_observer = InteractiveSsh(hostname = hostname, port = 22, username = username, password = password)
-    hartserver_observer = InteractiveSsh(hostname = hostname, port = 22, username = username, password = password)
+    nwconsole_observer = InteractiveSSH(hostname = hostname, port = 22, username = username, password = password)
+    hartserver_observer = InteractiveSSH(hostname = hostname, port = 22, username = username, password = password)
 
     # Create a folder to hold the data
     folder = datetime.now().strftime(hostname + " - %a %d %B %Y - %I-%M-%S %p")
