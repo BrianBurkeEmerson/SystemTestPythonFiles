@@ -38,7 +38,7 @@ ssh.safe_send("ppath clear")
 # Create the paths using the ppath command
 for mac in child_macs:
     print(ssh.safe_send("ppath only #" + mac + " #" + parent_mac))
-    print("Created path from " + mac + " to " + parent_mac)
+    print("Created path from " + mac + " to " + parent_mac + " (Mote " + mac_id_pairs[mac] + "->Mote " + mac_id_pairs[parent_mac] + ")")
 
 # Reset the gateway
 ssh.safe_send("exec reset mote 1")

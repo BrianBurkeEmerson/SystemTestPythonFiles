@@ -10,7 +10,7 @@ paths = ssh.get_paths()
 graph = nx.DiGraph()
 
 for path in paths:
-    graph.add_edge(path[0], path[1])
+    graph.add_edge(path[1], path[0])
 
 nx.draw(graph, with_labels = True)
 plt.show()
