@@ -56,7 +56,7 @@ class InteractiveSSH(paramiko.SSHClient):
             raise TimeoutError("DCC has not started yet")
     
 
-    def get_mote_id_mac_associations(self, use_mac_keys = False):
+    def get_mote_id_mac_associations(self, use_mac_keys = False, include_ap = True):
         id_mac_pairs = {} # IDs are keys and MAC addresses are entries
         mac_id_pairs = {} # MAC addresses are keys and IDs are entries
 
@@ -71,8 +71,9 @@ class InteractiveSSH(paramiko.SSHClient):
                 if "00-" in line:
                     columns = re.split("\s{1,}", line.strip())
                     if "ap" in columns:
-                        id_mac_pairs[columns[2]] = columns[0]
-                        mac_id_pairs[columns[0]] = columns[2]
+                        if include_ap:
+                            id_mac_pairs[columns[2]] = columns[0]
+                            mac_id_pairs[columns[0]] = columns[2]
                         retry_sm = False
                     else:
                         id_mac_pairs[columns[1]] = columns[0]
