@@ -179,14 +179,28 @@ def main():
     hartserver_observation_thread.join()
 
     # Cancel the monitoring operations
-    nwconsole_observer.safe_send("trace motest off")
-    hartserver_observer.safe_send("\x03")
+    try:
+        nwconsole_observer.safe_send("trace motest off")
+    except:
+        pass
+
+    try:
+        hartserver_observer.safe_send("\x03")
+    except:
+        pass
 
     # Close the SSH sessions
-    nwconsole_observer.shell.close()
-    nwconsole_observer.close()
-    hartserver_observer.shell.close()
-    hartserver_observer.close()
+    try:
+        nwconsole_observer.shell.close()
+        nwconsole_observer.close()
+    except:
+        pass
+
+    try:
+        hartserver_observer.shell.close()
+        hartserver_observer.close()
+    except:
+        pass
 
     # Parse the logs
     print("Parsing device logs...")
