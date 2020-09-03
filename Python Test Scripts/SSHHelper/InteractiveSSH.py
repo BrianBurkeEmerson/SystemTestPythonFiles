@@ -69,7 +69,7 @@ class InteractiveSSH(paramiko.SSHClient):
             for line in sm:
                 # Only parse lines containing MAC addresses (all start with the same bytes)
                 if "00-" in line:
-                    columns = re.split("\s{1,}", line.strip())
+                    columns = re.split(r"\s{1,}", line.strip())
                     if "ap" in columns:
                         if include_ap:
                             id_mac_pairs[columns[2]] = columns[0]
@@ -134,7 +134,7 @@ class InteractiveSSH(paramiko.SSHClient):
 
             # Go through each line in the block
             for line in path:
-                columns = re.split("\s{1,}", line.strip())
+                columns = re.split(r"\s{1,}", line.strip())
 
                 # Set the mote A and B info and mark the path as unused if its present
                 if "moteAMac:" in line:
