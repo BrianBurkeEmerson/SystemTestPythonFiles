@@ -1,0 +1,4 @@
+matplotlib==3.2.2
+paramiko==2.7.1
+scp==0.13.2
+selenium==3.141.0
