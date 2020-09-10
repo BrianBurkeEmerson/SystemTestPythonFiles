@@ -34,7 +34,7 @@ for mac in mac_id_pairs:
         print(ssh.safe_send("ppath never #" + mac + " #" + ap_mac))
 
 # Reset the gateway
-ssh.safe_send("exec reset mote 1")
+ssh.safe_send("exec reset mote " + ap_mac)
 
 # End the SSH session
 ssh.shell.close()
