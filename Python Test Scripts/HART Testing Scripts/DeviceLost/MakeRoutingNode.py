@@ -10,6 +10,9 @@ from InteractiveSSH import InteractiveSSH
 hostname = "toc0"
 parent_mac = "00-1B-1E-26-5D-6B-0E-BC"
 
+use_mote_id = True # Allows the mote ID to be used instead of the MAC address if desired
+parent_id = 5
+
 # Create the SSH session and open nwconsole
 ssh = InteractiveSSH(hostname)
 ssh.start_nwconsole()
@@ -18,6 +21,10 @@ ssh.start_nwconsole()
 ssh.safe_send("su becareful")
 mac_id_pairs = ssh.get_mote_id_mac_associations(use_mac_keys = True, include_ap = False)
 mac_id_pairs_with_ap = ssh.get_mote_id_mac_associations(use_mac_keys = True, include_ap = True)
+
+if use_mote_id:
+    id_mac_pairs = ssh.get_mote_id_mac_associations(use_mac_keys = False, include_ap = False)
+    parent_mac = id_mac_pairs[str(parent_id)]
 
 # Determine which MAC is the AP
 ap_mac = ""
