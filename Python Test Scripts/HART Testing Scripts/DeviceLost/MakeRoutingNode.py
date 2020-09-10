@@ -1,4 +1,4 @@
-# This script makes a certain MAC address into a routing node for N child nodes
+# This script makes a certain MAC address into a routing node for all other network nodes
 
 import os
 import sys
@@ -22,6 +22,7 @@ ssh.safe_send("su becareful")
 mac_id_pairs = ssh.get_mote_id_mac_associations(use_mac_keys = True, include_ap = False)
 mac_id_pairs_with_ap = ssh.get_mote_id_mac_associations(use_mac_keys = True, include_ap = True)
 
+# Use the parent mote ID to get the parent MAC address if the option is selected
 if use_mote_id:
     id_mac_pairs = ssh.get_mote_id_mac_associations(use_mac_keys = False, include_ap = False)
     parent_mac = id_mac_pairs[str(parent_id)]
@@ -41,7 +42,7 @@ for mac in mac_id_pairs:
         print(ssh.safe_send("ppath never #" + mac + " #" + ap_mac))
 
 # Reset the gateway
-ssh.safe_send("exec reset mote " + ap_mac)
+print(ssh.safe_send("exec reset mote " + mac_id_pairs_with_ap[ap_mac]))
 
 # End the SSH session
 ssh.shell.close()
