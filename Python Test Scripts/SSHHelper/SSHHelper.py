@@ -8,17 +8,26 @@ DELAY_BETWEEN_RETRIES = 0.5
 PASS_SIZE = 3 # The number of commands that can be executed at once (in a single pass)
 
 class SSHHelper(paramiko.SSHClient):
-    def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1"):
+    def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1", open_connection = True):
         super().__init__()
 
         # Create the paramiko SSH client and apply a key policy
         self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         # Establish the SSH connection
-        self.connect(hostname = hostname, port = port, username = username, password = password)
+        self._hostname = hostname
+        self._port = port
+        self._username = username
+        self._password = password
+        if open_connection:
+            self.open_connection()
 
         # Create an empty dictionary of processes being tracked
         self.processes = {}
+
+
+    def open_connection(self):
+        self.connect(hostname = self._hostname, port = self._port, username = self._username, password = self._password)
 
 
     # Removes any characters from a string that are not numbers
