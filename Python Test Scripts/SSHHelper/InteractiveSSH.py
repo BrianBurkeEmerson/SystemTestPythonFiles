@@ -62,7 +62,9 @@ class InteractiveSSH(paramiko.SSHClient):
 
         # Get a list of MAC addresses with associated mote IDs
         retry_sm = True
-        while retry_sm and include_ap:
+        while retry_sm:
+            retry_sm = include_ap
+
             id_mac_pairs = {}
             mac_id_pairs = {}
             sm = self.safe_send("sm -a").splitlines()
