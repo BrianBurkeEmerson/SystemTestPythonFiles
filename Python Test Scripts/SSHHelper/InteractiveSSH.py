@@ -159,3 +159,39 @@ class InteractiveSSH(paramiko.SSHClient):
             return paths_mac
         else:
             return paths_id
+    
+
+    def convert_list_to_string(self, array):
+        return_string = ""
+        for line in array:
+            return_string += (line + "\n")
+        return return_string
+
+
+    def show_stat_short(self, indices = [0, 1], combine_list_to_string = False):
+        stats = []
+
+        # Go through each index and add the "show stat short" results to the stats list
+        for i in indices:
+            stats.extend(self.safe_send("show stat short " + str(i)).splitlines())
+
+        # Combine the list entries into a single string if the option is selected
+        if combine_list_to_string:
+            return self.convert_list_to_string(stats)
+        # Otherwise return the list as-is
+        else:
+            return stats
+    
+
+    def show_stat_life(self, combine_list_to_string = False):
+        if combine_list_to_string:
+            return self.convert_list_to_string(self.safe_send("show stat life").splitlines())
+        else:
+            return self.safe_send("show stat life").splitlines()
+    
+
+    def show_stat_cur(self, combine_list_to_string = False):
+        if combine_list_to_string:
+            return self.convert_list_to_string(self.safe_send("show stat cur").splitlines())
+        else:
+            return self.safe_send("show stat cur").splitlines()
