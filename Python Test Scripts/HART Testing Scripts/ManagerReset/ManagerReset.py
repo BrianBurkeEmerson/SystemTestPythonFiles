@@ -41,7 +41,7 @@ def main():
     asyncSsh.shell.close()
     asyncSsh.close()
 
-    testObj = StateTimeTracker("toc0")
+    testObj = StateTimeTracker(HOSTNAME)
     testThread = None
 
     # Enter a loop for executing commands

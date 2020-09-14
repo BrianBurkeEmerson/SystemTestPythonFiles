@@ -31,10 +31,11 @@ class StateTimeTracker():
                 break
             except TimeoutError:
                 time.sleep(1)
-        print("Opened nwconsole")
+                print("\033[92mTrying to open nwconsole...\033[0m")
+        print("\033[92mOpened nwconsole\033[0m")
 
         id_mac_pairs = observer.get_mote_id_mac_associations()
-        print("Created mote ID/MAC address associations")
+        print("\033[92mCreated mote ID/MAC address associations\033[0m")
 
         # Create a folder to hold each log
         if not(os.path.exists(folder)):
@@ -66,6 +67,11 @@ class StateTimeTracker():
                         end_index = line.find(" ", start_index)
                         mote_id = line[start_index:end_index]
 
+                        # Check if the device is new
+                        if mote_id not in id_mac_pairs:
+                            id_mac_pairs = observer.get_mote_id_mac_associations()
+                            print("\033[92mUpdated mote ID/MAC address associations\033[0m")
+
                         # Get a timestamp and write it in Unix format and the custom format separated by $ symbols
                         now = datetime.now()
                         log_line = now.strftime(str(now.timestamp()) + " $ " + self.TS_FMT + " $ " + line + "\n")
@@ -87,8 +93,8 @@ class StateTimeTracker():
         # Start watching hartserver with the tail commmand
         while "No such file or directory" in observer.safe_send("tail -F /var/apache/data/hartserver.txt"):
             time.sleep(1)
-            print("Trying to open hartserver...")
-        print("Opened hartserver")
+            print("\033[94mTrying to open hartserver...\033[0m")
+        print("\033[94mOpened hartserver\033[0m")
 
         # Wait for status changes to come through and write them to the correct files with timestamps
         while self.monitor_log:
