@@ -59,9 +59,33 @@ class IsaDeviceCounter():
 
     # Downloads the remote ISA database file to the folder Python is being run from
     # location: The databse file location on the remote gateway
-    def download_db_file(self, location = "/var/tmp/Monitor_Host.db3"):
-        self.clientScp.get(location)
+    def download_db_file(self, location = "/var/tmp/Monitor_Host.db3", local_path = ""):
+        if local_path == "":
+            self.clientScp.get(location)
+        else:
+            self.clientScp.get(location, local_path = local_path)
     
+
+    def get_isa_device_states(self, db_name = "Monitor_Host.db3", skip_first_three = True):
+        conn = sqlite3.connect(db_name)
+        c = conn.cursor()
+
+        return_dict = {}
+
+        # Iterate through each row in the Devices table but skip the first three since they are the gateway and associated components, not wireless devices
+        row_count = -1
+        for row in c.execute("SELECT * FROM Devices ORDER BY DeviceID"):
+            row_count += 1
+
+            # Skip the gateway and associated components
+            if skip_first_three and row_count < 3:
+                continue
+
+            # Get the device status for each device (row[5]) and put into the return_dict
+            return_dict[row[0]] = row[5]
+        
+        return return_dict
+
 
     # Reads the devices associated with the gateway in the database file, and sorts them into the dictionary described at the top
     # db_name: The filename of the database to be read
@@ -90,10 +114,11 @@ class IsaDeviceCounter():
         for row in c.execute("SELECT * FROM Devices ORDER BY DeviceID"):
             row_count += 1
 
-            # Check index 5 in each tuple to determine the status
+            # Skip the gateway and associated components
             if skip_first_three and row_count < 3:
                 continue
             
+            # Check index 5 in each tuple to determine the status
             device_dict[DEVICE_STATUS_IDS[row[5]]] += 1
         
         conn.close()
@@ -110,6 +135,8 @@ class IsaDeviceCounter():
 
         for row in c.execute("SELECT * FROM NetworkHealthDevices ORDER BY DeviceID"):
             return_dict[row[0]] = 100 - row[5]
+        
+        conn.close()
         
         return return_dict
     
@@ -138,7 +165,22 @@ class IsaDeviceCounter():
                 }
                 return_list.append(new_dict)
         
+        conn.close()
+        
         return return_list
+    
+
+    def get_device_id_name_pairs(self, db_name = "Monitor_Host.db3"):
+        conn = sqlite3.connect(db_name)
+        c = conn.cursor()
+
+        return_dict = {}
+        for row in c.execute("SELECT * FROM Devices ORDER BY DeviceID"):
+            return_dict[row[0]] = bytearray.fromhex(row[4]).decode()
+        
+        conn.close()
+
+        return return_dict
     
 
     def close(self):
