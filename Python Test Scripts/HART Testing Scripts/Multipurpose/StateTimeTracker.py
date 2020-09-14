@@ -12,15 +12,93 @@ from ParseStateTimeDeviceLogs import parse_device_logs
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../SSHHelper")
 from InteractiveSSH import InteractiveSSH
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ISA 100 Testing Scripts/ISADeviceCount")
+from ISADeviceCount import IsaDeviceCounter
+from ISADeviceCount import DEVICE_STATUS_IDS
+
 class StateTimeTracker():
     def __init__(self, hostname, username = "root", password = "emerson1"):
         self.TS_FMT = "%m/%d/%y %H:%M:%S"
+        self.DB_LOCATION = "/var/tmp/Monitor_Host.db3"
+        self.DB_NAME = "Monitor_Host.db3"
         self.monitor_log = True
         self.running_test = False
 
         self.hostname = hostname
         self.username = username
         self.password = password
+
+
+    def isa_monitor_host_observation(self, observer, folder):
+        # Capture ISA100 device information in a separate folder
+        if not os.path.exists(folder + "/isa"):
+            os.mkdir(folder + "/isa")
+        
+        # Continuously attempt to download the database file until it is successful
+        while True:
+            try:
+                observer.download_db_file(self.DB_LOCATION, local_path = folder + "/isa/" + self.DB_NAME)
+                break
+            except:
+                time.sleep(0.1)
+                print("\033[95mLooking for ISA100 database...\033[0m")
+        
+        print("\033[95mFound ISA100 database\033[0m")
+
+        # Get the devices registered in the database to mark a start time for each
+        device_id_name_pairs = observer.get_device_id_name_pairs(folder + "/isa/" + self.DB_NAME)
+        for device_id, name in device_id_name_pairs.items():
+            now = datetime.now()
+
+            # Create a line that will be written to the log (since the database does not do that obviously)
+            line = "Test Started"
+            log_line = now.strftime(str(now.timestamp()) + " $ " + self.TS_FMT + " $ " + line + "\n")
+
+            # Check if the file exists and change the write mode accordingly
+            filename = folder + "/isa/" + str(device_id) + "$" + str(name) + ".txt"
+            write_mode = "w"
+            if os.path.exists(filename):
+                write_mode = "a"
+
+            with open(filename, write_mode) as f:
+                f.write(log_line)
+
+        old_statuses = {}
+        statuses = {}
+
+        # Enter a loop where the database is periodically downloaded and checked
+        while self.monitor_log:
+            observer.download_db_file(self.DB_LOCATION, local_path = folder + "/isa/" + self.DB_NAME)
+
+            # Update the list of device IDs and device names
+            device_id_name_pairs = observer.get_device_id_name_pairs(folder + "/isa/" + self.DB_NAME)
+            with open(folder + "/isa/id_name_pairs.csv", "w") as f:
+                for device_id, name in device_id_name_pairs.items():
+                    f.write(str(device_id) + "," + str(name) + "\n")
+            
+            # Update the old device statuses with the last readings for comparison purposes
+            old_statuses = statuses
+            statuses = observer.get_isa_device_states(db_name = folder + "/isa/" + self.DB_NAME)
+
+            # Go through each new status and see if it differed from the previous one to write the state change time to a file
+            for device, status in statuses.items():
+                if ((device in old_statuses) and (status != old_statuses[device])) or (device not in old_statuses):
+                    now = datetime.now()
+
+                    # Create a line that will be written to the log (since the database does not do that obviously)
+                    line = "Device " + str(device) + " (" + str(device_id_name_pairs[device]) + ") is now in state " + str(DEVICE_STATUS_IDS[status])
+                    log_line = now.strftime(str(now.timestamp()) + " $ " + self.TS_FMT + " $ " + line + "\n")
+
+                    # Check if the file exists and change the write mode accordingly
+                    filename = folder + "/isa/" + str(device) + "$" + str(device_id_name_pairs[device]) + ".txt"
+                    write_mode = "w"
+                    if os.path.exists(filename):
+                        write_mode = "a"
+
+                    with open(filename, write_mode) as f:
+                        f.write(log_line)
+                    
+                    print("\033[95m" + log_line + "\033[0m")
 
 
     def nwconsole_observation(self, observer, folder):
@@ -46,7 +124,7 @@ class StateTimeTracker():
         
         # Create blank log files for each device
         for mote_id in id_mac_pairs:
-            with open(folder + "/" + subfolder + "/" + str(id_mac_pairs[mote_id]) + ".txt", "w") as f:
+            with open(folder + "/" + subfolder + "/" + str(mote_id) + "$" + str(id_mac_pairs[mote_id]) + ".txt", "w") as f:
                 now = datetime.now()
                 log_line = now.strftime(str(now.timestamp()) + " $ " + self.TS_FMT + " $ Test Started\n")
                 f.write(log_line)
@@ -77,7 +155,7 @@ class StateTimeTracker():
                         log_line = now.strftime(str(now.timestamp()) + " $ " + self.TS_FMT + " $ " + line + "\n")
 
                         # Write the log line
-                        with open(folder + "/" + subfolder + "/" + str(id_mac_pairs[mote_id]) + ".txt", "a") as f:
+                        with open(folder + "/" + subfolder + "/" + str(mote_id) + "$" + str(id_mac_pairs[mote_id]) + ".txt", "a") as f:
                             f.write(log_line)
                             print("\033[92m" + log_line + "\033[0m", end = "")
 
@@ -141,7 +219,7 @@ class StateTimeTracker():
                             print("\033[94m" + log_line + "\033[0m", end = "")
 
 
-    def start(self, directory = ""):
+    def start(self, directory = "", track_isa = False):
         self.monitor_log = True
         self.running_test = True
 
@@ -161,6 +239,11 @@ class StateTimeTracker():
         nwconsole_observer = InteractiveSSH(hostname = self.hostname, port = 22, username = self.username, password = self.password)
         hartserver_observer = InteractiveSSH(hostname = self.hostname, port = 22, username = self.username, password = self.password)
 
+        # Create an additional thread for ISA100 monitoring if requested
+        isa_observer = None
+        if track_isa:
+            isa_observer = IsaDeviceCounter(hostname = self.hostname, port = 22, username = self.username, password = self.password)
+
         # Create a folder to hold the data
         folder = datetime.now().strftime(self.hostname + " - %a %d %B %Y - %I-%M-%S %p")
         folder = directory + "/" + folder
@@ -170,6 +253,11 @@ class StateTimeTracker():
         nwconsole_observation_thread.start()
         hartserver_observation_thread = threading.Thread(target = self.hartserver_observation, args = (hartserver_observer, folder), name = "hartserver Observation")
         hartserver_observation_thread.start()
+
+        isa_observation_thread = None
+        if track_isa:
+            isa_observation_thread = threading.Thread(target = self.isa_monitor_host_observation, args = (isa_observer, folder), name = "ISA100 Observation")
+            isa_observation_thread.start() 
 
         # Wait for user to enter quit to stop logging
         #while input("Type \"quit\" to stop logging data: ").lower() != "quit":
@@ -182,6 +270,9 @@ class StateTimeTracker():
         print("Waiting for observation threads to finish current operation...")
         nwconsole_observation_thread.join()
         hartserver_observation_thread.join()
+
+        if isa_observation_thread != None:
+            isa_observation_thread.join()
         print("Observation threads finished. Closing SSH sessions.")
 
         # Cancel the monitoring operations
@@ -205,6 +296,11 @@ class StateTimeTracker():
         try:
             hartserver_observer.shell.close()
             hartserver_observer.close()
+        except:
+            pass
+
+        try:
+            isa_observer.close()
         except:
             pass
 

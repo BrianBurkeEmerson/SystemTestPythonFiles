@@ -5,9 +5,18 @@ def parse_device_logs(folder):
     devices = {}
 
     # Go through each log in the nwconsole and hartserver folders
+    mac_id_pairs = {}
     for subfolder in ("nwconsole", "hartserver"):
         for log_file in os.listdir(folder + "/" + subfolder):
             device_mac = log_file.split(".")[0] # Get the filename before the .txt
+
+            # Check if the mote ID is in the filename as well
+            try:
+                device_mac = device_mac.split("$")[1]
+                device_id = log_file.split("$")[0]
+                mac_id_pairs[device_mac] = device_id
+            except:
+                pass
 
             if device_mac not in devices:
                 devices[device_mac] = {}
@@ -53,13 +62,18 @@ def parse_device_logs(folder):
                 devices[device_mac][wait + " Wait"] = [0, 0, 0]
     
     # Write the results to a file
-    with open(folder + "/DeviceTimeInfo.csv", "w") as f:
+    with open(folder + "/DeviceTimeInfoHART.csv", "w") as f:
         f.write("Times in HH:MM:SS Format\n") # Write an infomation line
-        f.write("MAC Address,Time to Negot1,Time to Negot2,Time to Conn,Time to Oper,Time to Publish\n") # Write the row headers
+        f.write("MAC Address,Mote ID,Time to Negot1,Time to Negot2,Time to Conn,Time to Oper,Time to Publish\n") # Write the row headers
 
         # Iterate through each device
         for device_mac in devices:
             f.write(device_mac)
+
+            if device_mac in mac_id_pairs:
+                f.write("," + str(mac_id_pairs[device_mac]))
+            else:
+                f.write(",NaN")
 
             # Write the wait times to the CSV file with the proper padding to get HH:MM:SS format
             for wait in ("Negot1", "Negot2", "Conn", "Oper", "Publish"):
@@ -72,4 +86,4 @@ def parse_device_logs(folder):
             # Add a newline for the next device
             f.write("\n")
     
-    return (folder + "/DeviceTimeInfo.csv")
+    return (folder + "/DeviceTimeInfoHART.csv")
