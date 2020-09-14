@@ -4,9 +4,10 @@
 WRITE_RESULTS = False
 
 from ISADeviceCount.ISADeviceCount import IsaDeviceCounter
+from pprint import pprint as print
 
 # Create the SSH and SCP connections
-gateway = IsaDeviceCounter(hostname = 'systestdual', port = 22, username = 'root', password = 'emerson1')
+gateway = IsaDeviceCounter(hostname = 'toc0', port = 22, username = 'root', password = 'emerson1')
 
 # Download the database from the gateway
 gateway.download_db_file("/var/tmp/Monitor_Host.db3")
@@ -29,6 +30,8 @@ for device in reliabilities:
     if WRITE_RESULTS:
         with open("test.csv", "a") as f:
             f.write(str(device) + "," + str(reliabilities[device]) + "\n")
+
+#print(gateway.get_path_rssi("Python/Monitor_Host.db3"))
 
 # Close the connections
 gateway.close()

@@ -114,6 +114,33 @@ class IsaDeviceCounter():
         return return_dict
     
 
+    # Goes through the ISA database and returns the RSSI of all paths on the network
+    # db_name: The filename of the database to be read
+    def get_path_rssi(self, db_name = "Monitor_Host.db3"):
+        conn = sqlite3.connect(db_name)
+        c = conn.cursor()
+
+        return_list = []
+
+        for row in c.execute("SELECT * FROM NeighborHealthHistory ORDER BY LinkStatus"):
+            # Skip unused links
+            if row[4] == 0:
+                continue
+            # Create dictionaries of information added to the return_list for all active links
+            else:
+                new_dict = {
+                    "DeviceID" : row[0],
+                    "NeighborDeviceID" : row[2],
+                    "SignalStrength" : row[8],
+                    "MoteA" : row[0],
+                    "MoteB" : row[2],
+                    "ABPower" : row[8]
+                }
+                return_list.append(new_dict)
+        
+        return return_list
+    
+
     def close(self):
         self.clientScp.close()
         self.clientSsh.close()
