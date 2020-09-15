@@ -1,13 +1,14 @@
 import os
 import sys
 import base64
-import paramiko
 import time
 import re
 import threading
+import subprocess
 from datetime import datetime
+import paramiko
 
-from ParseStateTimeDeviceLogs import parse_device_logs
+from ParseStateTimeDeviceLogs import parse_device_logs, parse_hart_device_logs, parse_isa_device_logs
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../SSHHelper")
 from InteractiveSSH import InteractiveSSH
@@ -15,6 +16,9 @@ from InteractiveSSH import InteractiveSSH
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../ISA 100 Testing Scripts/ISADeviceCount")
 from ISADeviceCount import IsaDeviceCounter
 from ISADeviceCount import DEVICE_STATUS_IDS
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../RandomTools")
+from ConvertCsvFilesToXlsx import convert_csv_files_to_xlsx
 
 class StateTimeTracker():
     def __init__(self, hostname, username = "root", password = "emerson1"):
@@ -45,15 +49,14 @@ class StateTimeTracker():
         
         print("\033[95mFound ISA100 database\033[0m")
 
+        # Create a line that will be written to the log (since the database does not do that obviously)
+        now = datetime.now()
+        line = "Test Started"
+        start_line = now.strftime(str(now.timestamp()) + " $ " + self.TS_FMT + " $ " + line + "\n")
+
         # Get the devices registered in the database to mark a start time for each
         device_id_name_pairs = observer.get_device_id_name_pairs(folder + "/isa/" + self.DB_NAME)
         for device_id, name in device_id_name_pairs.items():
-            now = datetime.now()
-
-            # Create a line that will be written to the log (since the database does not do that obviously)
-            line = "Test Started"
-            log_line = now.strftime(str(now.timestamp()) + " $ " + self.TS_FMT + " $ " + line + "\n")
-
             # Check if the file exists and change the write mode accordingly
             filename = folder + "/isa/" + str(device_id) + "$" + str(name) + ".txt"
             write_mode = "w"
@@ -61,20 +64,28 @@ class StateTimeTracker():
                 write_mode = "a"
 
             with open(filename, write_mode) as f:
-                f.write(log_line)
+                f.write(start_line)
 
+        # Create dictionaries used for determining whether anything of interest changed in the database
         old_statuses = {}
         statuses = {}
+        old_device_id_name_pairs = {}
+        device_id_name_pairs = {}
 
         # Enter a loop where the database is periodically downloaded and checked
         while self.monitor_log:
+            #time.sleep(1)
             observer.download_db_file(self.DB_LOCATION, local_path = folder + "/isa/" + self.DB_NAME)
 
             # Update the list of device IDs and device names
+            old_device_id_name_pairs = device_id_name_pairs
             device_id_name_pairs = observer.get_device_id_name_pairs(folder + "/isa/" + self.DB_NAME)
-            with open(folder + "/isa/id_name_pairs.csv", "w") as f:
-                for device_id, name in device_id_name_pairs.items():
-                    f.write(str(device_id) + "," + str(name) + "\n")
+
+            # Update the CSV if the list of devices has changed
+            if device_id_name_pairs != old_device_id_name_pairs:
+                with open(folder + "/isa/id_name_pairs.csv", "w") as f:
+                    for device_id, name in device_id_name_pairs.items():
+                        f.write(str(device_id) + "," + str(name) + "\n")
             
             # Update the old device statuses with the last readings for comparison purposes
             old_statuses = statuses
@@ -91,14 +102,17 @@ class StateTimeTracker():
 
                     # Check if the file exists and change the write mode accordingly
                     filename = folder + "/isa/" + str(device) + "$" + str(device_id_name_pairs[device]) + ".txt"
-                    write_mode = "w"
-                    if os.path.exists(filename):
-                        write_mode = "a"
+                    write_mode = "a"
+                    if not os.path.exists(filename):
+                        write_mode = "w"
+
+                        # Write the test start time if a new device is found
+                        log_line = start_line + log_line
 
                     with open(filename, write_mode) as f:
                         f.write(log_line)
                     
-                    print("\033[95m" + log_line + "\033[0m")
+                    print("\033[95m" + log_line + "\033[0m", end = "")
 
 
     def nwconsole_observation(self, observer, folder):
@@ -111,6 +125,9 @@ class StateTimeTracker():
                 time.sleep(1)
                 print("\033[92mTrying to open nwconsole...\033[0m")
         print("\033[92mOpened nwconsole\033[0m")
+
+        now = datetime.now()
+        start_line = now.strftime(str(now.timestamp()) + " $ " + self.TS_FMT + " $ Test Started\n")
 
         id_mac_pairs = observer.get_mote_id_mac_associations()
         print("\033[92mCreated mote ID/MAC address associations\033[0m")
@@ -125,9 +142,7 @@ class StateTimeTracker():
         # Create blank log files for each device
         for mote_id in id_mac_pairs:
             with open(folder + "/" + subfolder + "/" + str(mote_id) + "$" + str(id_mac_pairs[mote_id]) + ".txt", "w") as f:
-                now = datetime.now()
-                log_line = now.strftime(str(now.timestamp()) + " $ " + self.TS_FMT + " $ Test Started\n")
-                f.write(log_line)
+                f.write(start_line)
         
         observer.safe_send("trace motest on")
 
@@ -145,10 +160,12 @@ class StateTimeTracker():
                         end_index = line.find(" ", start_index)
                         mote_id = line[start_index:end_index]
 
-                        # Check if the device is new
+                        # Check if the device is new and write it a default file
                         if mote_id not in id_mac_pairs:
                             id_mac_pairs = observer.get_mote_id_mac_associations()
                             print("\033[92mUpdated mote ID/MAC address associations\033[0m")
+                            with open(folder + "/" + subfolder + "/" + str(mote_id) + "$" + str(id_mac_pairs[mote_id]) + ".txt", "w") as f:
+                                f.write(start_line)
 
                         # Get a timestamp and write it in Unix format and the custom format separated by $ symbols
                         now = datetime.now()
@@ -304,12 +321,67 @@ class StateTimeTracker():
         except:
             pass
 
+        # Combine ISA100 files for the same device into one file (can happen if a name isn't valid but later is recognized)
+        if track_isa:
+            merged_files = []
+            for log_file in os.listdir(folder + "/isa"):
+                # Skip files that aren't .txt log files
+                if log_file[-4:] != ".txt":
+                    continue
+
+                # Skip files with unidentified device names (they will be merged into other files)
+                if "$NULL.txt" in log_file:
+                    continue
+                    
+                # Skip files that have already been merged
+                if log_file in merged_files:
+                    continue
+                
+                # Get the identifier before the device name (<Device ID>$)
+                identifier = log_file.split("$")[0] + "$"
+
+                # Get a list of all files to check the current log file against
+                all_files = os.listdir(folder + "/isa")
+
+                # Get the list of all files to merge together
+                files_to_merge = []
+                for filename in all_files:
+                    if filename.startswith(identifier) and (filename != log_file):
+                        files_to_merge.append(filename)
+                
+                # Read the contents of all files into a string
+                content = ""
+                for filename in ([log_file] + files_to_merge):
+                    with open(folder + "/isa/" + filename, "r") as f:
+                        content += f.read()
+                content.replace("\n\n", "\n")
+
+                # Write the merged content into the original log file
+                with open(folder +  "/isa/" + log_file, "w") as f:
+                    f.write(content)
+                
+                merged_files.extend(files_to_merge)
+            
+            # Delete the merged files
+            for filename in merged_files:
+                os.remove(folder + "/isa/" + filename)
+
         # Parse the logs
         print("Parsing device logs...")
-        loc = parse_device_logs(folder)
+        parse_hart_device_logs(folder)
+        if track_isa:
+            parse_isa_device_logs(folder)
+
+        # Convert the CSV files to an XLSX
+        convert_csv_files_to_xlsx(folder + "/DeviceTimeInfo.xlsx", folder)
+
+        # Delete the CSV files
+        os.remove(folder + "/HART.csv")
+        if track_isa:
+            os.remove(folder + "/ISA100.csv")
 
         self.running_test = False
-        print("Finished test and stored results in " + loc)
+        print("Finished test and stored results in " + folder + "/DeviceTimeInfo.xlsx")
 
 
 if __name__ == "__main__":
