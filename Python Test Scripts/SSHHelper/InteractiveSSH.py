@@ -57,12 +57,16 @@ class InteractiveSSH(paramiko.SSHClient):
     
 
     def get_mote_id_mac_associations(self, use_mac_keys = False, include_ap = True):
+        RETRY_LIMIT = 10
+
         id_mac_pairs = {} # IDs are keys and MAC addresses are entries
         mac_id_pairs = {} # MAC addresses are keys and IDs are entries
 
         # Get a list of MAC addresses with associated mote IDs
         retry_sm = True
-        while retry_sm:
+        retry_count = 0
+        while retry_sm and (retry_count < RETRY_LIMIT):
+            retry_count += 1
             retry_sm = include_ap
 
             id_mac_pairs = {}
@@ -81,6 +85,9 @@ class InteractiveSSH(paramiko.SSHClient):
                         id_mac_pairs[columns[1]] = columns[0]
                         mac_id_pairs[columns[0]] = columns[1]
         
+        if retry_count >= RETRY_LIMIT:
+            print("Could not find AP in list of motes")
+
         if use_mac_keys:
             return mac_id_pairs
         else:
