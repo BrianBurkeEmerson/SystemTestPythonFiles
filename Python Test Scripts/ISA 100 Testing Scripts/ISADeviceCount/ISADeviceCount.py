@@ -100,8 +100,8 @@ class IsaDeviceCounter():
             "Stale" : 0,
             "Security Join Request Received" : 0,
             "Security Join Response Sent" : 0,
-            "Join Received" : 0,
-            "Join Response Sent" : 0,
+            "Join-Received" : 0,
+            "Join-Response Sent" : 0,
             "Contract Join Received" : 0,
             "Contract Join Response Sent" : 0,
             "Security Confirm Received" : 0,
@@ -176,7 +176,10 @@ class IsaDeviceCounter():
 
         return_dict = {}
         for row in c.execute("SELECT * FROM Devices ORDER BY DeviceID"):
-            return_dict[row[0]] = bytearray.fromhex(row[4]).decode()
+            try:
+                return_dict[row[0]] = bytearray.fromhex(row[4]).decode()
+            except:
+                return_dict[row[0]] = "NULL"
         
         conn.close()
 
