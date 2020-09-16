@@ -1,10 +1,11 @@
 import time
+import sys
 from datetime import datetime
 from SSHHelper import SSHHelper
 
 HOSTNAME = "192.168.1.10"
 
-while True:
+for i in range(sys.maxsize):
     time.sleep(15 * 60)
 
     try:
@@ -13,5 +14,6 @@ while True:
         ssh.close()
     except:
         now = datetime.now()
+        print("Failed on loop " + str(i))
         print(now)
         break
