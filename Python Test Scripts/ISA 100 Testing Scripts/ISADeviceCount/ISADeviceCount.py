@@ -38,7 +38,7 @@ DEVICE_STATUS_IDS = {
     3 : "Stale",
     4 : "Security Join Request Received",
     5 : "Security Join Response Sent",
-    6 : "Join Received",
+    6 : "Join-Received",
     7 : "Join Response Sent",
     8 : "Contract Join Received",
     9 : "Contract Join Response Sent",
