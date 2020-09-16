@@ -10,7 +10,7 @@ for i in range(sys.maxsize):
 
     try:
         ssh = SSHHelper(HOSTNAME)
-        ssh.send_command("reboot -p")
+        ssh.send_command("shutdown -r -h now")
         ssh.close()
     except:
         now = datetime.now()
