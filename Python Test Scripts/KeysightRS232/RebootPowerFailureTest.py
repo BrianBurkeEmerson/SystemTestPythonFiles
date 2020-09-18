@@ -80,7 +80,7 @@ def log_serial_output(port):
                             break
 
                     if resp != "":
-                        with open(current_file, "w") as f:
+                        with open(current_file, "a") as f:
                             f.write(resp)
                     
                     if "login:" in resp:
@@ -100,7 +100,8 @@ with E3647A(POWER_SUPPLY_PORT) as s:
     s.disable_output()
 
 directory = input("Enter a folder name for log files: ")
-os.mkdir(directory)
+if not os.path.exists(directory):
+    os.mkdir(directory)
 
 with open(directory + "/failed_boots.txt", "w") as f:
     f.write("")
