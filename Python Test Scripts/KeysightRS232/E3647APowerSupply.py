@@ -10,6 +10,18 @@ class E3647A():
         self.s = serial.Serial(self.port, self.baud, timeout = self.timeout)
     
 
+    def __enter__(self):
+        self.open()
+        self.enable_remote_control()
+    
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.disable_output()
+        self.set_voltage(0)
+        self.set_current(0)
+        self.close()
+    
+
     def open(self):
         self.s.open()
 
