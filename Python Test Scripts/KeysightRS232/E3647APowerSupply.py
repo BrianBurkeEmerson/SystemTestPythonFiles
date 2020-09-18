@@ -24,6 +24,10 @@ class E3647A(serial.Serial):
         return return_string
     
 
+    def enable_remote_control(self):
+        self.send_cmd("SYST:REM")
+    
+
     def set_voltage(self, voltage, max_current = False):
         cmd = "APPL " + str(voltage)
 
