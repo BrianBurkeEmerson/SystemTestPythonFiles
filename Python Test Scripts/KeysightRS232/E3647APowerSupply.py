@@ -13,6 +13,7 @@ class E3647A():
     def __enter__(self):
         self.open()
         self.enable_remote_control()
+        return self
     
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
