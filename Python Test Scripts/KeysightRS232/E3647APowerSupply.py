@@ -15,13 +15,13 @@ class E3647A():
 
 
     def close(self):
-        self.s.open()
+        self.s.close()
 
     
     def send_cmd(self, cmd = ""):
         READ_AT_ONCE = 1000
 
-        self.s.write(bytes(cmd + "\n"))
+        self.s.write(bytes(cmd + "\n", "utf-8"))
 
         return_string = ""
         while True:
