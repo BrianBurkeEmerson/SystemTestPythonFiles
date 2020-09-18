@@ -1,21 +1,31 @@
 # pip install pyserial
 import serial
 
-class E3647A(serial.Serial):
+class E3647A():
     def __init__(self, port = "/dev/ttyS0", baud = 9600, timeout = 1):
         self.port = port
-        self.baudrate = baud
+        self.baud = baud
         self.timeout = timeout
+
+        self.s = serial.Serial(self.port, self.baud, timeout = self.timeout)
+    
+
+    def open(self):
+        self.s.open()
+
+
+    def close(self):
+        self.s.open()
 
     
     def send_cmd(self, cmd = ""):
         READ_AT_ONCE = 1000
 
-        self.write(bytes(cmd + "\n"))
+        self.s.write(bytes(cmd + "\n"))
 
         return_string = ""
         while True:
-            resp = self.read(READ_AT_ONCE).decode()
+            resp = self.s.read(READ_AT_ONCE).decode()
             if resp == "":
                 break
             else:
