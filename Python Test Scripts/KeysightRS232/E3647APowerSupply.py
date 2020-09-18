@@ -7,8 +7,6 @@ class E3647A(serial.Serial):
         self.baudrate = baud
         self.timeout = timeout
 
-        self.open()
-
     
     def send_cmd(self, cmd = ""):
         READ_AT_ONCE = 1000
