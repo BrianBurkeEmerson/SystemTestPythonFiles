@@ -17,6 +17,7 @@ from ISADeviceCount import IsaDeviceCounter
 
 HOSTNAME = "1410s-charlie"
 
+use_isa = True
 
 def write_to_numbered_file(folder, subfolder, data, extension = ".txt"):
     if not os.path.exists(folder + "/" + subfolder):
@@ -37,9 +38,15 @@ def write_to_numbered_file(folder, subfolder, data, extension = ".txt"):
 
 def main():
     global HOSTNAME
+    global use_isa
 
     directory = os.getcwd().replace("\\", "/")
     print("\033[93mResults will be stored in " + directory + " unless changed\033[0m")
+
+    if use_isa:
+        print("\033[93mISA100 testing turned on\033[0m")
+    else:
+        print("\033[93mISA100 testing turned off\033[0m")
     
     while True:
         try:
@@ -71,6 +78,7 @@ def main():
             print("cur: Record \"show stat cur\"")
             print("isa: Record ISA100 path RSSI statistics")
             print("folder: Select folder where results are stored")
+            print("toggle: Toggles testing for ISA100 on/off")
             print("start: Start test if one is not running")
             print("stop: Stop running test if one is active")
             print("quit: Exit this application")
@@ -111,6 +119,13 @@ def main():
             directory = fd.askdirectory()
             root.destroy()
             print("\033[93mTest results will be stored in " + directory + "\033[0m")
+        
+        elif cmd == "toggle":
+            use_isa = not use_isa
+            if use_isa:
+                print("\033[93mISA100 testing turned on\033[0m")
+            else:
+                print("\033[93mISA100 testing turned off\033[0m")
         
         elif cmd == "start":
             if testObj.running_test:
