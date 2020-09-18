@@ -108,7 +108,7 @@ with open(directory + "/failed_boots.txt", "w") as f:
 power_supply_thread = threading.Thread(target = power_cycle, args = (POWER_SUPPLY_PORT,), name = "Power Supply Cycling")
 serial_logging_thread = threading.Thread(target = log_serial_output, args = (GATEWAY_PORT,), name = "Serial Logging")
 
-time.sleep()
+time.sleep(10)
 
 power_supply_thread.start()
 serial_logging_thread.start()
