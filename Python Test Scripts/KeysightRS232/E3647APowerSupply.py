@@ -23,7 +23,10 @@ class E3647A():
     
 
     def open(self):
-        self.s.open()
+        try:
+            self.s.open()
+        except Exception:
+            print("Serial port already opened. Further commands will attempt to use it.")
 
 
     def close(self):
