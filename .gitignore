@@ -3,3 +3,6 @@ Python Test Scripts/ResourceUsage/__pycache__
 Python Test Scripts/ResourceUsage/build
 Python Test Scripts/ResourceUsage/dist
 *.pyc
+Python Test Scripts/RandomTools/__pycache__
+Python Test Scripts/RandomTools/build
+Python Test Scripts/RandomTools/dist
