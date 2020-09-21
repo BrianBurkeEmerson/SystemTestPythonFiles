@@ -6,6 +6,10 @@ mote = "5"
 ssh = InteractiveSSH("toc0")
 ssh.start_nwconsole()
 
+a = ssh.safe_send("get motes").split("\r\n\r\n")
+for mote in a:
+    b = mote.splitlines()
+
 lines = ssh.safe_send("show stat short 0").splitlines()
 lines.extend([mote + " -- --"])
 lines.extend(ssh.safe_send("show stat cur").splitlines())

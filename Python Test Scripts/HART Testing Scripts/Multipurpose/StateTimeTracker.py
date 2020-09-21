@@ -236,7 +236,11 @@ class StateTimeTracker():
                             print("\033[94m" + log_line + "\033[0m", end = "")
 
 
-    def start(self, directory = "", track_isa = False):
+    def stop(self):
+        self.monitor_log = False
+
+
+    def start(self, directory = "", track_isa = False, folder_override = False):
         self.monitor_log = True
         self.running_test = True
 
@@ -264,6 +268,8 @@ class StateTimeTracker():
         # Create a folder to hold the data
         folder = datetime.now().strftime(self.hostname + " - %a %d %B %Y - %I-%M-%S %p")
         folder = directory + "/" + folder
+        if folder_override:
+            folder = directory
 
         # Setup each observer with their own thread to begin monitoring
         nwconsole_observation_thread = threading.Thread(target = self.nwconsole_observation, args = (nwconsole_observer, folder), name = "nwconsole Observation")
@@ -382,6 +388,20 @@ class StateTimeTracker():
 
         self.running_test = False
         print("Finished test and stored results in " + folder + "/DeviceTimeInfo.xlsx")
+
+
+def verify_ssh_connection(hostname, port = 22, username = "root", password = "emerson1"):
+    # Continuously attempt to connect to the gateway until a connection is established
+    # Close the connection immediately to allow the nwconsole and hartserver observers to run
+    connection_verification = paramiko.SSHClient()
+    connection_verification.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    while True:
+        try:
+            connection_verification.connect(hostname = hostname, port = port, username = username, password = password)
+            break
+        except:
+            time.sleep(1)
+    connection_verification.close()
 
 
 if __name__ == "__main__":

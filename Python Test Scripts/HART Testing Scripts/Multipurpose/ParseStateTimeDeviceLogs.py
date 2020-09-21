@@ -50,12 +50,14 @@ def parse_hart_device_logs(folder):
                         dict_entry = "Oper Time"
                     elif "is Responding" in line:
                         dict_entry = "Publish Time"
+                    elif "neighbor flag cleared" in line:
+                        dict_entry = "Neighbor Time"
                     
                     # Write the dictionary entry
                     devices[device_mac][dict_entry] = datetime.fromtimestamp(unix_timestamp)
             
     # Calculate the time differences
-    for wait in ("Negot1", "Negot2", "Conn", "Oper", "Publish"):
+    for wait in ("Negot1", "Negot2", "Conn", "Oper", "Publish", "Neighbor"):
         for device_mac in devices:
             # Convert the time difference in seconds to hours, minutes, and seconds
             try:
