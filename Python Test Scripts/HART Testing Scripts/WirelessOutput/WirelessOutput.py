@@ -33,7 +33,7 @@ deltas = []
 led_state = 0
 client.write_coil(0, led_state)
 
-input("Hit enter to start test")
+input("Press enter to start test")
 
 test_start = datetime.now()
 old_time, new_time = test_start, test_start
@@ -48,7 +48,7 @@ while datetime.now() - test_start < timedelta(minutes = 30):
     client.write_coil(0, led_state)
 
     # Let the user wait until the LED turns on
-    input("Hit enter when LED toggles to " + str(led_state))
+    input("Press enter when the LED toggles to " + str(led_state))
 
     # Calculate the time delta
     new_time = datetime.now()
