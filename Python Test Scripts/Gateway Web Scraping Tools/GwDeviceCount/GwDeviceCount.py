@@ -54,6 +54,12 @@ PASSWORD_FIELD = "inputPassword"
 OLD_LOGIN_PASSWORD_FIELD = "checking"
 FACTORY_NO_BUTTON = "btnAlertDialogNo"
 DEVICES_BUTTON = "devicesMenu"
+SETTINGS_BUTTON = "settingsMenu"
+BACKUP_BUTTON = "menuBackup"
+BACKUP_PASSWORD_FIELD = "idPass"
+BACKUP_PASSWORD_FIELD_CONFIRM = "idRepeatPass"
+SAVE_BACKUP_BUTTON = "btnSave"
+DOWNLOAD_BACKUP_BUTTON = "btnDownload"
 DEVICE_COUNT_STATUS = "dgrid-status"
 TEXT_BEFORE_COUNT = "of "
 TEXT_AFTER_COUNT = " results"
@@ -92,7 +98,9 @@ DELAY_AFTER_CLOSING_FACTORY_DIALOG = 3
 # factory_enabled: Whether or not factory accounts are enabled (program will wait to close the dialog box if they are)
 # old_login_fields: Old versions of the gateway firmware used different names for the login and password fields
 class GwDeviceCounter():
-    def __init__(self, hostname = "192.168.1.10", user = "admin", password = "default", supports_isa = False, factory_enabled = True, old_login_fields = False, open_devices = True):
+    def __init__(self, hostname = "192.168.1.10", user = "admin", password = "default",\
+        supports_isa = False, factory_enabled = True, old_login_fields = False, open_devices = True,\
+            change_download_settings = False, default_download_location = ""):
 
         # Store initialization variables
         self.login_url = "http://" + hostname + "/login"
@@ -106,7 +114,7 @@ class GwDeviceCounter():
 
         # Call the default open function which brings the browser to the devices page
         if open_devices:
-            self.open()
+            self.open(change_download_settings = change_download_settings, default_download_location = default_download_location)
     
 
     # Returns whether the browser has been open for longer than a given number of minutes
@@ -140,10 +148,17 @@ class GwDeviceCounter():
     
     
     # If the browser if closed and needs to be reopened, call the open() function
-    def open(self):
+    def open(self, change_download_settings = False, default_download_location = ""):
         # Create a profile that allows invalid security certificates (gateways have self-signed certificates)
         profile = webdriver.FirefoxProfile()
         profile.accept_untrusted_certs = True
+
+        if change_download_settings:
+            profile.set_preference("browser.download.folderList", 2)
+            profile.set_preference("browser.download.manager.showWhenStarting", False)
+            profile.set_preference("browser.download.dir", default_download_location)
+            profile.set_preference("browser.download.useDownloadDir", True)
+            profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/zip")
 
         # Create the driver that controls the browser
         self.driver = webdriver.Firefox(firefox_profile = profile)
@@ -198,7 +213,52 @@ class GwDeviceCounter():
         devices_menu = self.driver.find_element_by_id(DEVICES_BUTTON)
         devices_menu.click()
         self.current_devices_tab = "All"
+
     
+    def open_settings_page(self):
+        settings_menu = self.driver.find_element_by_id(SETTINGS_BUTTON)
+        settings_menu.click()
+    
+
+    def open_backup_menu(self):
+        backup_menu = self.driver.find_element_by_id(BACKUP_BUTTON)
+        backup_menu.click()
+    
+
+    def start_save_backup(self, password):
+        pass_field = self.driver.find_element_by_id(BACKUP_PASSWORD_FIELD)
+        pass_field.send_keys(password)
+
+        pass_field = self.driver.find_element_by_id(BACKUP_PASSWORD_FIELD_CONFIRM)
+        pass_field.send_keys(password)
+
+        save_button = self.driver.find_element_by_id(SAVE_BACKUP_BUTTON)
+        save_button.click()
+    
+
+    def wait_for_backup_to_finish(self):
+        while True:
+            try:
+                download_button = self.driver.find_element_by_id(DOWNLOAD_BACKUP_BUTTON)
+                if (download_button.location["x"] == 0) or (download_button.location["y"] == 0):
+                    time.sleep(1)
+                    continue
+                break
+            except:
+                time.sleep(1)
+
+
+    def download_backup(self):
+        while True:
+            try:
+                download_button = self.driver.find_element_by_id(DOWNLOAD_BACKUP_BUTTON)
+                download_button.click()
+                break
+            except:
+                time.sleep(1)
+        # cursor = ActionChains(self.driver).move_to_element(download_button).click(download_button)
+        # cursor.perform()
+
 
     # Changes the devices tab between All/Live/Unreachable/Low Battery
     # wait_for_updates: Whether the browser should wait for Javascript updates after changing tabs
