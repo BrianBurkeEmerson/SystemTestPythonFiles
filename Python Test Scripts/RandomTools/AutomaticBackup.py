@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import json
+import requests
 import threading
 from datetime import datetime
 
@@ -13,36 +14,28 @@ CONFIG_FILE = "config.json"
 
 
 def automatic_backup(hostname, backup_folder, backup_interval, supports_isa, password):
-    save_location = os.getcwd() + "\\" + backup_folder
-
     # Create a folder for the gateway's backups
     if not os.path.exists(backup_folder):
         os.mkdir(backup_folder)
 
     # Open a browser to the settings page
-    browser = gdc.GwDeviceCounter(hostname, supports_isa = supports_isa, change_download_settings = True, default_download_location = save_location)
+    browser = gdc.GwDeviceCounter(hostname, supports_isa = supports_isa)
     browser.open_settings_page()
 
     # Open the backup page within the settings
     time.sleep(1)
     browser.open_backup_menu()
 
-    # Create a backup, wait for it to finish, and download it
+    # Create a backup and wait for it to finish
     time.sleep(1)
     browser.start_save_backup(password)
     browser.wait_for_backup_to_finish()
-    browser.download_backup()
 
-    # Wait until the download finishes
-    downloaded_file = save_location + "\\system_backup.zip"
-    while (not os.path.exists(downloaded_file)) or (os.path.exists(downloaded_file + ".part")):
-        continue
-
-    # Rename the file based on the hostname and current time
+    # Create a filename based on the hostname and current time before downloading the file
     now = datetime.now()
-    new_filename = now.strftime("%H-%M-%S on %m-%d-%Y")
+    new_filename = now.strftime("%m-%d-%Y at %H-%M-%S")
     new_filename = hostname + " - " + new_filename + ".zip"
-    os.rename(downloaded_file, save_location + "\\" + new_filename)
+    browser.download_backup(backup_folder + "\\" + new_filename)
 
     # Close the browser
     browser.close()
@@ -71,5 +64,6 @@ with open(CONFIG_FILE, "r") as f:
 for gateway in config["Gateways"]:
     threading.Thread(target = automatic_backup, args = (gateway, gateway, config["BackupIntervalInSeconds"], config["SupportsISA100"], config["BackupPassword"]), daemon = True).start()
 
+# When the user types "quit" then the program will exit
 while input("Type \"quit\" to stop program: ").lower() != "quit":
     continue

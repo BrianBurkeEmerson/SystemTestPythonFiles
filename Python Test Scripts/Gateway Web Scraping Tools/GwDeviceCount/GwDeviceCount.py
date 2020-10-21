@@ -45,7 +45,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 import time
-#import copy
+import requests
 from datetime import datetime
 
 # The following constants are used for identifying HTML/CSS elements
@@ -99,11 +99,11 @@ DELAY_AFTER_CLOSING_FACTORY_DIALOG = 3
 # old_login_fields: Old versions of the gateway firmware used different names for the login and password fields
 class GwDeviceCounter():
     def __init__(self, hostname = "192.168.1.10", user = "admin", password = "default",\
-        supports_isa = False, factory_enabled = True, old_login_fields = False, open_devices = True,\
-            change_download_settings = False, default_download_location = ""):
+        supports_isa = False, factory_enabled = True, old_login_fields = False, open_devices = True):
 
         # Store initialization variables
-        self.login_url = "http://" + hostname + "/login"
+        self.hostname = hostname
+        self.login_url = "http://" + self.hostname + "/login"
         self.user = user
         self.password = password
         self.supports_isa = supports_isa
@@ -114,7 +114,7 @@ class GwDeviceCounter():
 
         # Call the default open function which brings the browser to the devices page
         if open_devices:
-            self.open(change_download_settings = change_download_settings, default_download_location = default_download_location)
+            self.open()
     
 
     # Returns whether the browser has been open for longer than a given number of minutes
@@ -148,17 +148,10 @@ class GwDeviceCounter():
     
     
     # If the browser if closed and needs to be reopened, call the open() function
-    def open(self, change_download_settings = False, default_download_location = ""):
+    def open(self):
         # Create a profile that allows invalid security certificates (gateways have self-signed certificates)
         profile = webdriver.FirefoxProfile()
         profile.accept_untrusted_certs = True
-
-        if change_download_settings:
-            profile.set_preference("browser.download.folderList", 2)
-            profile.set_preference("browser.download.manager.showWhenStarting", False)
-            profile.set_preference("browser.download.dir", default_download_location)
-            profile.set_preference("browser.download.useDownloadDir", True)
-            profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/zip")
 
         # Create the driver that controls the browser
         self.driver = webdriver.Firefox(firefox_profile = profile)
@@ -248,16 +241,22 @@ class GwDeviceCounter():
                 time.sleep(1)
 
 
-    def download_backup(self):
-        while True:
-            try:
-                download_button = self.driver.find_element_by_id(DOWNLOAD_BACKUP_BUTTON)
-                download_button.click()
-                break
-            except:
-                time.sleep(1)
-        # cursor = ActionChains(self.driver).move_to_element(download_button).click(download_button)
-        # cursor.perform()
+    def download_backup(self, save_location):
+        # Get cookies for the current session and set them for the requests library to avoid login credential problems
+        cookies = self.driver.get_cookies()
+        s = requests.Session()
+        for cookie in cookies:
+            s.cookies.set(cookie["name"], cookie["value"])
+        
+        # Request the latest system backup from the gateway
+        url = "https://" + self.hostname + "/servlet/system_backup.zip"
+        reply = s.get(url, verify = False)
+
+        # Write the downloaded data to a file
+        with open(save_location, "wb") as f:
+            for chunk in reply.iter_content(chunk_size = 1024): 
+                if chunk:
+                    f.write(chunk)
 
 
     # Changes the devices tab between All/Live/Unreachable/Low Battery
