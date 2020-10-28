@@ -6,7 +6,7 @@ import networkx as nx
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../SSHHelper")
 from InteractiveSSH import InteractiveSSH
 
-hostname = "toc0"
+hostname = "rosemount1"
 
 # Create the SSH session
 ssh = InteractiveSSH(hostname)
