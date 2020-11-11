@@ -11,6 +11,8 @@ class SSHHelper(paramiko.SSHClient):
     def __init__(self, hostname = "192.168.1.10", port = 22, username = "root", password = "emerson1", open_connection = True):
         super().__init__()
 
+        self.NWCONSOLE = "/opt/dust-manager/bin/nwconsole"
+
         # Create the paramiko SSH client and apply a key policy
         self.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -53,6 +55,7 @@ class SSHHelper(paramiko.SSHClient):
                 break
             except:
                 time.sleep(DELAY_BETWEEN_RETRIES)
+                print("ERROR: " + cmd)
         
         # Put each line of the output into a list
         stdout_list = []
@@ -61,6 +64,10 @@ class SSHHelper(paramiko.SSHClient):
         
         return stdout_list
     
+
+    def send_nwconsole_command(self, cmd: str) -> list:
+        return self.send_command(self.NWCONSOLE + " --quiet --command \"" + cmd + "\"")
+
 
     # Calls the TOP command and parses the output to determine which processes are using the most memory
     # num_of_processes: How many processes to return
@@ -73,7 +80,7 @@ class SSHHelper(paramiko.SSHClient):
         if use_alt:
             for line in self.send_command("ps aux --sort -rss | grep root"):
                 if i < num_of_processes:
-                    columns = re.split("\s{1,}", line.strip())
+                    columns = re.split(r"\s{1,}", line.strip())
                     # Get the process name by combining all columns at index 10 and after
                     process_name = ""
                     for j in range(10, len(columns)):
@@ -87,7 +94,7 @@ class SSHHelper(paramiko.SSHClient):
                 if i < num_of_processes:
                     # Get the 11th column (starting from 0) to get the process name after splitting with regex
                     # Get the 9th column to get the memory usage percentage
-                    return_list.append((re.split("\s{1,}", line.strip())[11], re.split("\s{1,}", line.strip())[9]))
+                    return_list.append((re.split(r"\s{1,}", line.strip())[11], re.split(r"\s{1,}", line.strip())[9]))
                     i += 1
         
         # If the number of recorded processes has not reached what was requested, pad out the list with empty strings
